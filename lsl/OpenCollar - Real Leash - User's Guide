@@ -1,0 +1,44 @@
+Open Collar - Real Leash - User's Guide
+========================
+
+Real Leash is an OpenCollar add-on that automatically sets a number of restrictions on your collar when you are leashed. This makes the experience more real because you won't be able to teleport, sit on far away objects, or touch anything that's not close to you.
+
+This add-on requires RLV to work properly.
+
+Installation
+-------------
+
+Edit your collar and drag the script and this help notecard into its contents. That's all you need to do.
+
+Usage
+-------
+
+To enable Real Leash, call up the Open Collar menu, click on "AddOns" and then "Real Leash". Click on the *Switch On* button to enable the add-on.
+
+Once enabled, you can set a number of restrictions that will be applied to the wearer, while they are leashed to a post or another person. All settings are saved and will be restored even after a collar reset.
+
+As soon as the wearer is leashed, the list of restrictions is hidden for them. The wearer also can't switch off Real Leash while they are leashed. Other people can still access the full menu.
+
+Menu Buttons
+----------------
+
+- *Switch On*: Enables Real Leash
+- *Switch Off: Disables Real Leash
+- Help: Gives out this notecard
+- Allow Touch: Allows the leashed victim to touch things that are far away
+- Allow Sit: Allows the leashed victim to sit on things that are far away
+- Allow LM: Allows the leashed victim to teleport by using a landmark
+- Allow Lure: Allows the leashed victim to accept teleport offers by anyone
+- Allow Loc: Allows the leashed victim to teleport anywhere by using the map
+- Forbid Touch: Prevents the leashed victim from touching things that are far away
+- Forbid Sit: Prevents the leashed victim from sitting on things that are far away
+- Forbid LM: Prevents the leashed victim from teleporting by using a landmark
+- Forbid Lure: Prevents the leashed victim from accepting teleport offers by anyone else than the leash holder and their primary owner
+- Forbid Loc: Prevents the leashed victim from teleporting anywhere by using the map
+
+Chat Commands
+------------------
+
+realleash: Calls up the Real Leash menu
+realleash on: Enables Real Leash
+realleash off: Disables Real Leash
