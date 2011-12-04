@@ -43,6 +43,7 @@ integer HTTPDB_EMPTY = 2004;//sent when a token has no value in the httpdb
 
 integer MENUNAME_REQUEST = 3000;
 integer MENUNAME_RESPONSE = 3001;
+integer SUBMENU = 3002; // deprecated, kept only for backward compatibility with old auth system
 integer MENUNAME_REMOVE = 3003;
 
 integer DIALOG = -9000;
@@ -173,9 +174,6 @@ HandleMenuResponse(string entry)
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    // SA: TODO delete this when transition is finished
-    if (iNum == COMMAND_NOAUTH) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
-    // /SA
     if (iNum == COMMAND_EVERYONE) return TRUE;  // No command for people with no privilege in this plugin.
     else if (iNum > COMMAND_EVERYONE || iNum < COMMAND_OWNER) return FALSE; // sanity check
 
@@ -231,10 +229,14 @@ default
     
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        // SA: delete this after transition is finished
-        if (iNum == COMMAND_NOAUTH) return;
-        // /SA
-        if (UserCommand(iNum, sStr, kID)) return;
+        if (iNum == SUBMENU)
+        { //compatibility with old add-ons who request unauthed menus
+            if (sStr == "AddOns")
+            {
+                llMessageLinked(LINK_SET, COMMAND_NOAUTH, "addons", kID);
+            }
+        }
+        else if (UserCommand(iNum, sStr, kID)) return;
         else if (iNum == MENUNAME_RESPONSE)
         {
             //sStr will be in form of "parent|menuname"
@@ -299,6 +301,8 @@ default
                     else
                     {
                         llMessageLinked(LINK_SET, iAuth, "menu "+sMessage, kAv);
+                        // compatibility with old add-ons
+                        if (sMessage != "AddOns") llMessageLinked(LINK_SET, SUBMENU, sMessage, kAv);
                     }
                 }
             }
