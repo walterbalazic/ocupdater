@@ -68,7 +68,7 @@ key github_version_request;
 // A request to this URL will trigger delivery of an updater.  We omit the
 // "version=blah" parameter because we don't want the server deciding whether
 // we should get an updater or not.  We just want one.
-string delivery_url = "http://update.mycollar.org/updater/check?object=OpenCollarUpdaterBeta&update=yes";
+string delivery_url = "http://update.mycollar.org/updater/check?object=OpenCollarUpdater%20Dev%2FBeta%2FRC&update=yes";
 key appengine_delivery_request;
 
 // The news system is back!  Only smarter this time.  News will be kept in a
