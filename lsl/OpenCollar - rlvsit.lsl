@@ -10,16 +10,19 @@ list g_lSettings;//2-strided list in form of [option, param]
 
 list g_lRLVcmds = [
     "unsit",//may stand, if seated
+    "sit", //may sit
     "sittp"//may sit 1.5M+ away
         ];
 
 list g_lPrettyCmds = [ //showing menu-friendly command names for each item in g_lRLVcmds
     "Stand",
-    "Sit"
+    "Sit",
+    "Sit far"
         ];
 
 list g_lDescriptions = [ //showing descriptions for commands
     "Ability to Stand If Seated",
+    "Ability to Sit",
     "Ability to Sit On Objects 1.5M+ Away"
         ];
 
@@ -51,13 +54,11 @@ integer g_iRestoreCount = 0;
 float   g_fPollDelay = 10.0;
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -287,15 +288,15 @@ list RestackMenu(list in)
     
 integer UserCommand(integer iNum, string sStr, key kID)
 {
+    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
 /* //no more needed -- SA: really? don't we need it back now? (3.7)
-    else if ((sStr == "reset" || sStr == "runaway") && (iNum == COMMAND_OWNER || iNum == COMMAND_WEARER))
+    else if ((sStr == "reset" || sStr == "runaway") && (iNum == LM_AUTH_PRIMARY || kID == g_kWearer))
     {
         //clear db, reset script
         llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sDBToken, NULL_KEY);
         llResetScript();
     }
 */
-    if (iNum < COMMAND_OWNER | iNum > COMMAND_WEARER) return FALSE;
     if (llToLower(sStr) == "sitmenu" || sStr == "menu " + g_sSubMenu) {Menu(kID, iNum); return TRUE;}
     else if (llToLower(sStr) == "sitnow")
     {
@@ -324,12 +325,17 @@ integer UserCommand(integer iNum, string sStr, key kID)
         //split off the parameters (anything after a : or =)
         //and see if the thing being set concerns us
         string sThisItem = llList2String(lItems, n);
-        string sBehavior = llList2String(llParseString2List(sThisItem, ["=", ":"], []), 0);
+	list lAtoms = llParseString2List(sThisItem, ["=", ":"], []);
+        string sBehavior = llList2String(lAtoms, 0);
+	if (llList2String(lAtoms, -1) == "force" && llListFindList(g_lIdmtCmds, [sBehavior]) != -1)
+        {
+            //this is an immediate command that we handle
+            llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
+        }
+/* SA: take care of this later, with a more generic method, allowing each plugin to bypass their own restrictions in rlvmain (and only their own)
         if (sStr == "unsit=force")
         {
-            //this one's just weird
-            //llOwnerSay("forcing stand");
-            if (iNum == COMMAND_WEARER)
+            if (iNum > LM_AUTH_SECONDARY)
             {
                 Notify(g_kWearer, "Sorry, but RLV commands may only be given by owner, secowner, or group (if set).", FALSE);
             }
@@ -346,11 +352,12 @@ integer UserCommand(integer iNum, string sStr, key kID)
                 llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
             }
         }
+*/
         else if (llListFindList(g_lRLVcmds, [sBehavior]) != -1)
         {
             //this is a behavior that we handle.
             //filter commands from wearer, if wearer is not owner
-            if (iNum == COMMAND_WEARER)
+            if (iNum > LM_AUTH_SECONDARY)
             {
                 Notify(g_kWearer, "Sorry, but RLV commands may only be given by owner, secowner, or group (if set).", FALSE);
                 return TRUE;
@@ -371,18 +378,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
             }
             iChange = TRUE;
         }
-        else if (llListFindList(g_lIdmtCmds, [sBehavior]) != -1)
-        {
-            //this is an immediate command that we handle
-            //filter commands from wearer, if wearer is not owner
-            if (iNum == COMMAND_WEARER)
-            {
-                Notify(g_kWearer, "Sorry, but RLV commands may only be given by owner, secowner, or group (if set).", FALSE);
-                return TRUE;
-            }
-            llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
-        }
-        else if (sBehavior == "clear" && iNum == COMMAND_OWNER) ClearSettings();
+        else if (sBehavior == "clear" && iNum <= LM_AUTH_SECONDARY) ClearSettings();
     }
 
     if (iChange)
@@ -507,7 +503,6 @@ default
             //split string on both comma and equals sign
             //first see if this is the token we care about
             list lParams = llParseString2List(sStr, ["="], []);
-            integer iChange = FALSE;
             if (llList2String(lParams, 0) == g_sDBToken)
             {
                 //throw away first element

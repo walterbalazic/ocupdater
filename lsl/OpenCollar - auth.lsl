@@ -12,7 +12,7 @@ string g_sTmpName; //used temporarily to store new owner or secowner name while 
 
 string  g_sWikiURL = "http://code.google.com/p/opencollar/wiki/UserDocumentation";
 string g_sParentMenu = "Main";
-string g_sSubMenu = "Owners";
+string g_sSubMenu = "Access";
 
 string g_sRequestType; //may be "owner" or "secowner" or "remsecowner"
 key g_kHTTPID;
@@ -32,17 +32,14 @@ key g_kSensorMenuID;
 integer g_iInterfaceChannel = -12587429;
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
-integer COMMAND_BLACKLIST = 520;
-// added so when the sub is locked out they can use postions
-integer COMMAND_WEARERLOCKEDOUT = 521;
+integer LM_AUTH_NONE = 0;	 // before going through auth system
+integer LM_AUTH_PRIMARY = 500;   // primary owner auth, can do close to anything (except what requires wearer's explicit consent)
+integer LM_AUTH_SECONDARY = 501; // secondary owner auth, same as primary but cannot change ownership/access options
+integer LM_AUTH_GUEST = 502;     // user is allowed to use the collar but cannot "lock" anything
+integer LM_AUTH_OTHER = 504;     // user is not allowed, but not explicitly denied either. Plugins may act on such messages in very specific use cases.
+integer LM_AUTH_DENIED = 520;    // user is explicitly banned from using the collar. 
+
+integer LM_DO_SAFEWORD = 599;
 //added for attachment auth (garvin)
 integer ATTACHMENT_REQUEST = 600;
 integer ATTACHMENT_RESPONSE = 601;
@@ -107,6 +104,23 @@ integer g_iRemenu = FALSE;
 
 key g_kDialoger;//the person using the dialog.  needed in the sensor event when scanning for new owners to add
 integer g_iDialogerAuth; //auth of the person using the dialog
+
+
+string Num2AuthClassName(integer n)
+{
+    if (n == LM_AUTH_NONE) return "none";
+    else if (n == LM_AUTH_PRIMARY) return "primary owner";
+    else if (n == LM_AUTH_SECONDARY) return "secondary owner";
+    else if (n == LM_AUTH_GUEST) return "guest user";
+integer LM_AUTH_OTHER = 504;     // user is not allowed, but not explicitly denied either. Plugins may act on such messages in very specific use cases.
+integer LM_AUTH_DENIED = 520;    // user is explicitly banned from using the collar. 
+	if (n == LM
+}
+
+integer AuthClassName2Num(string s)
+{
+}
+
 
 Debug(string sStr)
 {
@@ -294,51 +308,51 @@ integer Auth(string kObjID, integer attachment)
     integer iNum;
     if (g_iWearerlocksOut && kID == (string)g_kWearer && !attachment)
     {
-        iNum = COMMAND_WEARERLOCKEDOUT;
+        iNum = LM_AUTH_DENIED;
     }
     else if (~llListFindList(g_lOwners, [(string)kID]))
     {
-        iNum = COMMAND_OWNER;
+        iNum = LM_AUTH_PRIMARY;
     }
     else if (llGetListLength(g_lOwners) == 0 && kID == (string)g_kWearer)
     {
         //if no owners set, then wearer's cmds have owner auth
-        iNum = COMMAND_OWNER;
+        iNum = LM_AUTH_PRIMARY;
     }
     else if (~llListFindList(g_lBlackList, [(string)kID]))
     {
-        iNum = COMMAND_BLACKLIST;
+        iNum = LM_AUTH_DENIED;
     }
     else if (~llListFindList(g_lSecOwners, [(string)kID]))
     {
-        iNum = COMMAND_SECOWNER;
+        iNum = LM_AUTH_SECONDARY;
     }
     else if (kID == (string)g_kWearer)
     {
-        iNum = COMMAND_WEARER;
+        iNum = LM_AUTH_GUEST;
     }
     else if (g_iOpenAccess)
     {
         if (in_range((key)kID))
-            iNum = COMMAND_GROUP;
+            iNum = LM_AUTH_GUEST;
         else
-            iNum = COMMAND_EVERYONE;
+            iNum = LM_AUTH_OTHER;
     }
     else if (g_iGroupEnabled && (string)llGetObjectDetails((key)kObjID, [OBJECT_GROUP]) == (string)g_kGroup && (key)kID != g_kWearer)
     {//meaning that the command came from an object set to our control group, and is not owned by the wearer
-        iNum = COMMAND_GROUP;
+        iNum = LM_AUTH_GUEST;
     }
     else if (llSameGroup(kID) && g_iGroupEnabled && kID != (string)g_kWearer)
     {
         if (in_range((key)kID))
-            iNum = COMMAND_GROUP;
+            iNum = LM_AUTH_GUEST;
         else
-            iNum = COMMAND_EVERYONE;
+            iNum = LM_AUTH_OTHER;
 
     }
     else
     {
-        iNum = COMMAND_EVERYONE;
+        iNum = LM_AUTH_OTHER;
     }
     return iNum;
 }
@@ -412,7 +426,7 @@ integer isKey(string sIn) {
 integer OwnerCheck(key kID)
 {//checks whether id has owner auth.  returns TRUE if so, else notifies person that they don't have that power
     //used in menu processing for when a non owner clicks an owner-only button
-    if (Auth((string)kID, FALSE) == COMMAND_OWNER)
+    if (Auth((string)kID, FALSE) == LM_AUTH_PRIMARY)
     {
         return TRUE;
     }
@@ -442,15 +456,15 @@ NotifyInList(list lStrideList, string sOwnerType)
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum == COMMAND_EVERYONE) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > COMMAND_EVERYONE || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
     if (sStr == "menu "+g_sSubMenu)
     {
         AuthMenu(kID, iNum);
     }
     else if (sStr == "settings" || sStr == "listowners")
     {   //say owner, secowners, group
-        if (iNum == COMMAND_OWNER || kID == g_kWearer)
+        if (iNum == LM_AUTH_PRIMARY || kID == g_kWearer)
         {
             //Do Owners list
             integer n;
@@ -493,7 +507,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     {   //give owner menu
         AuthMenu(kID, iNum);
     }
-    else if (iNum == COMMAND_OWNER)
+    else if (iNum == LM_AUTH_PRIMARY)
     { //respond to messages to set or unset owner, group, or secowners.  only owner may do these things
         list lParams = llParseString2List(sStr, [" "], []);
         string sCommand = llList2String(lParams, 0);
@@ -784,15 +798,15 @@ default
     }
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
-    {  //authenticate messages on COMMAND_NOAUTH
-        if (iNum == COMMAND_NOAUTH)
+    {  //authenticate messages on LM_AUTH_NONE
+        if (iNum == LM_AUTH_NONE)
         {
             integer iAuth = Auth((string)kID, FALSE);
-            if ((iNum == COMMAND_OWNER || kID == g_kWearer) && (sStr=="reset"))
+            if ((iNum == LM_AUTH_PRIMARY || kID == g_kWearer) && (sStr=="reset"))
             {
                 Notify(kID, "The command 'reset' is deprecated. Please use 'runaway' to leave the owner and clear all settings or 'resetscripts' to only reset the script in the collar.", FALSE);
             }
-            else if ((iAuth == COMMAND_OWNER || kID == g_kWearer) && sStr == "runaway")
+            else if ((iAuth == LM_AUTH_PRIMARY || kID == g_kWearer) && sStr == "runaway")
             {   // note that this will work *even* if the wearer is blacklisted or locked out
                 // otherwise forbid anybody who is not the wearer or primary owner
                 Notify(g_kWearer, "Running away from all owners started, your owners will now be notified!",FALSE);
@@ -808,8 +822,8 @@ default
                 }
                 Notify(g_kWearer, "Runaway finished, the collar will now reset!",FALSE);
                 // moved reset request from settings to here to allow noticifation of owners.
-                llMessageLinked(LINK_SET, COMMAND_OWNER, "runaway", kID); // this is not a LM loop, since it is now really authed
-                llMessageLinked(LINK_SET, COMMAND_OWNER, "resetscripts", kID);
+                llMessageLinked(LINK_SET, LM_AUTH_PRIMARY, "runaway", kID); // this is not a LM loop, since it is now really authed
+                llMessageLinked(LINK_SET, LM_AUTH_PRIMARY, "resetscripts", kID);
                 // notice the order is important: first "runaway" -> clears settings, then only other scripts are reset and may query their settings
                 llResetScript();
             }
@@ -888,7 +902,7 @@ default
         {
             llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + g_sSubMenu, "");
         }
-        else if (iNum == COMMAND_SAFEWORD)
+        else if (iNum == LM_DO_SAFEWORD)
         {
             string sSubName = llKey2Name(g_kWearer);
             string sSubFirstName = llList2String(llParseString2List(sSubName, [" "], []), 0);
@@ -1012,7 +1026,7 @@ default
                         UserCommand(iAuth, "listowners", kAv);
                     else if (sMessage == g_sReset)
                     { // separate routine
-                        llMessageLinked(LINK_SET, COMMAND_NOAUTH, "runaway", kAv);
+                        llMessageLinked(LINK_SET, LM_AUTH_NONE, "runaway", kAv);
                     }
                     AuthMenu(kAv, iAuth);
                 }

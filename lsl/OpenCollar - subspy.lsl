@@ -25,13 +25,12 @@ integer g_iSensorRange = 8;
 integer g_iSensorRepeat = 120;
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.
 integer POPUP_HELP = 1001;
@@ -265,7 +264,7 @@ key Dialog(key kRCPT, string sPrompt, list lChoices, list lUtilityButtons, integ
 DialogSpy(key kID, integer iAuth)
 {
     string sPrompt;
-    if (iAuth != COMMAND_OWNER)
+    if (iAuth != LM_AUTH_PRIMARY)
     {
         sPrompt = "Only an Owner can set and see spy options.";
         g_kDialogSpyID = Dialog(kID, sPrompt, [], [UPMENU], 0, iAuth);
@@ -430,16 +429,16 @@ TurnAllOff()
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < COMMAND_OWNER || iNum > COMMAND_WEARER) return FALSE;
+    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
     //only a primary owner can use this !!
     sStr = llToLower(sStr);
     if (sStr == "spy" || sStr == "menu " + llToLower(g_sSubMenu)) DialogSpy(kID, iNum);
-    else if (iNum != COMMAND_OWNER)
+    else if (iNum != LM_AUTH_PRIMARY)
     { 
         if(~llListFindList(g_lCmds, [sStr]))
             Notify(kID, "Sorry, only an owner can set spy settings.", FALSE);
     }
-    else // COMMAND_OWNER
+    else // LM_AUTH_PRIMARY
     {
         if (sStr == "radarsettings")//request for the radar settings menu
         {
@@ -576,7 +575,7 @@ default
         {
             llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + g_sSubMenu, NULL_KEY);
         }
-        else if(iNum == COMMAND_SAFEWORD)
+        else if(iNum == LM_DO_SAFEWORD)
         {//we recieved a safeword sCommand, turn all off
             TurnAllOff();
         }

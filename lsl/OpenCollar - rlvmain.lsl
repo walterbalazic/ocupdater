@@ -32,15 +32,12 @@ integer RELAY_CHANNEL = -1812221819;
 integer g_iVerbose;
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
-integer COMMAND_SAFEWORD = 510;
-integer COMMAND_RELAY_SAFEWORD = 511;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;
 
 integer POPUP_HELP = 1001;
 
@@ -59,6 +56,8 @@ integer RLV_CMD = 6000;
 integer RLV_REFRESH = 6001;//RLV plugins should reinstate their restrictions upon receiving this message.
 integer RLV_CLEAR = 6002;//RLV plugins should clear their restriction lists upon receiving this message.
 integer RLV_VERSION = 6003; //RLV Plugins can recieve the used rl viewer version upon receiving this message..
+integer RLV_PONG = 6050;
+integer RLV_SAFEWORD_RELAY = 6051;
 
 integer RLV_OFF = 6100; // send to inform plugins that RLV is disabled now, no message or key needed
 integer RLV_ON = 6101; // send to inform plugins that RLV is enabled now, no message or key needed
@@ -360,10 +359,10 @@ SafeWord(integer iCollarToo) {
 integer UserCommand(integer iNum, string sStr, key kID)
 {
     // SA: TODO delete this when transition is finished
-    if (iNum == COMMAND_NOAUTH) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
+    if (iNum == LM_AUTH_NONE) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
     // /SA
-    if (iNum == COMMAND_EVERYONE) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > COMMAND_EVERYONE || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [" "], []);
     string sCmd = llList2String(lParams, 0);
     string sValue = llToLower(llList2String(lParams, 1));
@@ -400,9 +399,9 @@ integer UserCommand(integer iNum, string sStr, key kID)
     // commands after this should only work when RLV is enabled and verified
     if (sStr == "clear")
     {
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
-            Notify(g_kWearer,"Sorry, but the sub cannot clear RLV settings.",TRUE);
+            Notify(g_kWearer,"Sorry, only an owner can clear RLV settings.",TRUE);
         }
         else
         {
@@ -419,7 +418,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
     }
     else if (sStr == "rlvoff")
     {
-        if (iNum == COMMAND_OWNER)
+        if (iNum == LM_AUTH_PRIMARY)
         {
             g_iRLVOn = FALSE;
             llMessageLinked(LINK_SET, LM_SETTING_SAVE, "rlvon=0", NULL_KEY);
@@ -513,7 +512,7 @@ default{
         {
             llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + g_sSubMenu, NULL_KEY);
         }
-        else if (iNum >= COMMAND_OWNER && iNum <= COMMAND_WEARER && sStr == "menu "+g_sSubMenu)
+        else if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER && sStr == "menu "+g_sSubMenu)
         {   //someone clicked "RLV" on the main menu.  Tell them we're not ready yet.
             Notify(kID, "Still querying for viewer version.  Please try again in a minute.", FALSE);
             llResetScript();//Nan: why do we reset here?! SA: maybe so we retry querying RLV?
@@ -648,7 +647,7 @@ state checked {
         if (iNum == MENUNAME_REQUEST && sStr == g_sParentMenu) {
             llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + g_sSubMenu, NULL_KEY);
         }
-        else if (iNum == COMMAND_NOAUTH) return; // SA: TODO remove later
+        else if (iNum == LM_AUTH_NONE) return; // SA: TODO remove later
         else if (UserCommand(iNum, sStr, kID)) return;
         else if (iNum == DIALOG_RESPONSE)
         {
@@ -722,9 +721,9 @@ state checked {
                 integer i;
                 for (i=0;i<llGetListLength(sCommands);i++) HandleCommand(kID,llList2String(sCommands,i));
             }
-            else if (iNum == COMMAND_RLV_RELAY)
+            else if (iNum == RLV_PONG)
             {
-                if (llGetSubString(sStr,-43,-1)!=","+(string)g_kWearer+",!pong") return;
+//                if (llGetSubString(sStr,-43,-1)!=","+(string)g_kWearer+",!pong") return;
                 if (kID==g_kSitter)
                 {
                     SendCommand("sit:"+(string)g_kSitTarget+"=force");
@@ -735,7 +734,7 @@ state checked {
                 list iRestr=llParseString2List(llList2String(g_lOldRestrictions,iSourceNum),["/"],[]);
                 for (j=0;j<llGetListLength(iRestr);j++) AddRestriction(kID,llList2String(iRestr,j));
             }
-            else if (iNum == COMMAND_SAFEWORD)
+            else if (iNum == LM_DO_SAFEWORD)
             {// safeWord used, clear rlv settings
                 llMessageLinked(LINK_SET, RLV_CLEAR, "", NULL_KEY);
                 SafeWord(TRUE);
@@ -769,7 +768,7 @@ state checked {
                     g_iRLVNotify = FALSE;
                 }
             }
-            else if (iNum==COMMAND_RELAY_SAFEWORD)
+            else if (iNum == RLV_SAFEWORD_RELAY)
             {
                 SafeWord(FALSE);
             }

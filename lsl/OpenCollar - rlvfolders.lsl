@@ -6,12 +6,11 @@ string g_sParentMenu = "Un/Dress";
 list g_lChildren = ["Browse #RLV"];
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -160,7 +159,7 @@ string lockFolderButton(integer iLockState, integer iLockNum, integer iAuth)
     else if (iLockNum == 1) sOut += LOCK_DETACH;
     else if (iLockNum == 2) sOut += LOCK_ATTACH_ALL;
     else if (iLockNum == 3) sOut += LOCK_DETACH_ALL;
-    if (iAuth > COMMAND_GROUP) sOut = "("+sOut+")";
+    if (iAuth > LM_AUTH_GUEST) sOut = "("+sOut+")";
     return sOut;
 }
 
@@ -171,7 +170,7 @@ string lockUnsharedButton(integer iLockNum, integer iAuth)
     else sOut = "✘";
     if (iLockNum == 1) sOut += "Lk Unsh Wear";
     else if  (iLockNum == 0) sOut += "Lk Unsh Remove";
-    if (iAuth > COMMAND_GROUP) sOut = "("+sOut+")";
+    if (iAuth > LM_AUTH_GUEST) sOut = "("+sOut+")";
     return sOut;
 }
 
@@ -449,7 +448,7 @@ SetAsyncMenu(key kAv, integer iAuth)
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < COMMAND_OWNER || iNum > COMMAND_WEARER) return FALSE;
+    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
     list lParams = llParseString2List(sStr, [" "], []);
     string sCommand = llToLower(llList2String(lParams, 0));
     string sValue = llToLower(llList2String(lParams, 1));
@@ -482,7 +481,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         g_lSearchList=llParseString2List(sStr,[","],[]);
         handleMultiSearch();
     }
-    else if (iNum <= COMMAND_GROUP)
+    else if (iNum <= LM_AUTH_GUEST)
     {
         list lArgs = llParseStringKeepNulls(sStr, ["="], []);
         integer val;

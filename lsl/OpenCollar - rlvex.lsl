@@ -114,13 +114,11 @@ integer g_iRLVOn=FALSE;
 key g_kWearer;
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave descripts
 integer POPUP_HELP = 1001;
@@ -206,7 +204,7 @@ Menu(key kID, string sWho, integer iAuth)
 
 PersonMenu(key kID, list lPeople, string sType, integer iAuth)
 {
-    if (iAuth != COMMAND_OWNER && kID != g_kWearer)
+    if (iAuth != LM_AUTH_PRIMARY && kID != g_kWearer)
     {
         Menu(kID, "", iAuth);
         Notify(kID, "You are not allowed to see who is exempted.", FALSE);
@@ -543,8 +541,8 @@ ClearEx()
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < COMMAND_OWNER || iNum > COMMAND_WEARER) return FALSE;
-    if ((sStr == "reset" || sStr == "runaway") && (iNum == COMMAND_OWNER || iNum == COMMAND_WEARER))
+    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
+    if ((sStr == "reset" || sStr == "runaway") && (iNum == LM_AUTH_PRIMARY || kID == g_kWearer))
     {   //clear db, reset script
         //llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sDBToken, NULL_KEY);
         //llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sExToken, NULL_KEY);
@@ -577,7 +575,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
                 {
                     //this is a behavior that we handle.
                     //filter commands from wearer, if wearer is not owner
-                    if (iNum != COMMAND_OWNER)
+                    if (iNum != LM_AUTH_PRIMARY)
                     {
                         llOwnerSay("Sorry, but RLV Exceptions commands may only be given by owner.");
                         return TRUE;
@@ -961,7 +959,7 @@ default
                         SetAllExs("");
                         */
                         //send rlv command out through auth system as though it were a chat command, just to make sure person who said it has proper authority
-                        //llMessageLinked(LINK_SET, COMMAND_NOAUTH, sOut, kAv);
+                        //llMessageLinked(LINK_SET, LM_AUTH_NONE, sOut, kAv);
                         //g_iReturnMenu = TRUE;
                     }
                     else if (sMessage == "Defaults")

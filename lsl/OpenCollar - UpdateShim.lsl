@@ -45,7 +45,7 @@ key GetScriptFullname(string name) {
     }
 }
 
-integer COMMAND_NOAUTH = 0;
+integer LM_AUTH_NONE = 0;
 
 integer LM_SETTING_SAVE = 2000;//scripts send messages on this channel to have settings saved to settings store
 //str must be in form of "token=value"
@@ -206,7 +206,7 @@ default
                     }
                     
                     // tell scripts to rebuild menus (in case plugins have been removed)
-                    llMessageLinked(LINK_SET, COMMAND_NOAUTH, "refreshmenu", llGetOwner());
+                    llMessageLinked(LINK_SET, LM_AUTH_NONE, "refreshmenu", llGetOwner());
                     
                     // remove the script pin
                     llSetRemoteScriptAccessPin(0);

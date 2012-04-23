@@ -30,15 +30,13 @@ list g_lModes = [
 ];
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
-integer COMMAND_BLACKLIST = 520;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;  // new for safeword
+integer LM_AUTH_DENIED = 520;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -306,7 +304,7 @@ ChatCamParams(integer chan)
 
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum > COMMAND_WEARER || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum > LM_AUTH_GUEST || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [" "], []);
     string sCommand = llList2String(lParams, 0);
     string sValue = llList2String(lParams, 1);
@@ -391,12 +389,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
             llSetTimerEvent(g_fReapeat);
         }
     }
-    else if (iNum == COMMAND_OWNER  || kID == g_kWearer && sStr == "runaway")
-    {
-        ClearCam();
-        llResetScript();
-    }
-    else if (iNum == COMMAND_OWNER && sStr == "reset")
+    else if ((iNum == LM_AUTH_PRIMARY  || kID == g_kWearer) && (sStr == "runaway" || sStr == "reset"))
     {
         ClearCam();
         llResetScript();
@@ -432,7 +425,7 @@ default
     {
         //only respond to owner, secowner, group, wearer
         if (UserCommand(iNum, sStr, kID)) return;
-        else if (iNum == COMMAND_SAFEWORD)
+        else if (iNum == LM_DO_SAFEWORD)
         {
             ClearCam();
             llResetScript();

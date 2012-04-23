@@ -11,12 +11,11 @@ integer g_iAppLock = FALSE;
 string g_sAppLockToken = "AppLock";
 
 //opencollar MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 integer POPUP_HELP = 1001;
 
@@ -348,7 +347,7 @@ default
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        if (iNum == COMMAND_OWNER)
+        if (iNum == LM_AUTH_PRIMARY)
         {
             list lParams = llParseString2List(sStr, [" "], []);
             string sCommand = llList2String(lParams, 0);
@@ -410,7 +409,7 @@ default
             //            }
             //
         }
-        if ((iNum >= COMMAND_SECOWNER) && (iNum <= COMMAND_WEARER))
+        if ((iNum >= LM_AUTH_SECONDARY) && (iNum < LM_AUTH_OTHER))
         {
             list lParams = llParseString2List(sStr, [" "], []);
             string sCommand = llList2String(lParams, 0);
@@ -455,7 +454,7 @@ default
             }
         }
         /* //no more needed
-            else if (iNum == COMMAND_WEARER && sStr == "reset")
+            else if (iNum == LM_AUTH_WEARER && sStr == "reset")
             {
                 llMessageLinked(LINK_SET, LM_SETTING_DELETE, "label", NULL_KEY);
                 llResetScript();

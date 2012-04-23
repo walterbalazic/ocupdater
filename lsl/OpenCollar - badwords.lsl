@@ -8,13 +8,12 @@ string g_sPenance = "pet is very sorry for her mistake";
 integer g_iListener;
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -219,7 +218,7 @@ Notify(key kID, string sMsg, integer iAlsoNotifyWearer) {
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum > COMMAND_WEARER || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum > LM_AUTH_GUEST || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [" "], []);
     string sCommand = llList2String(lParams, 0);
     if (sStr == "menu "+g_sSubMenu)
@@ -232,14 +231,14 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
         Notify(kID, "Bad Word Anim: " + g_sBadWordAnim,FALSE);
         Notify(kID, "Penance: " + g_sPenance,FALSE);
     }
-    else if(iNum > COMMAND_OWNER)
+    else if(iNum > LM_AUTH_PRIMARY)
     {
         if(sCommand == "badwords")
         {
             Notify(kID, "Sorry, only the owner can toggle badwords.",FALSE);
         }
     }
-    else // COMMAND_OWNER only
+    else // LM_AUTH_PRIMARY only
     {
         string sValue = llList2String(lParams, 1);
         if(sStr == "badwords") DialogBadwords(kID, iNum);
@@ -406,13 +405,8 @@ default
                 g_sPenance = sValue;
             }
         }
-        // no more self - resets
-        //    else if ((iNum == COMMAND_OWNER || iNum == COMMAND_WEARER) && (sStr == "reset" || sStr == "runaway"))
-        //    {
-        //        llResetScript();
-        //    }
         else if (UserCommand(iNum, sStr, kID)) return;
-        else if(iNum == COMMAND_SAFEWORD)
+        else if(iNum == LM_DO_SAFEWORD)
         { // safeword disables badwords !
             g_sIsEnabled = "badwords=false";
             llMessageLinked(LINK_SET, LM_SETTING_SAVE, g_sIsEnabled, NULL_KEY);
@@ -459,6 +453,11 @@ default
                     Notify(kAv, "The penance phrase to release the sub from the punishment anim is:\n" + g_sPenance,FALSE);
                 }
                 else if(sMessage == "Quick Help") { DialogHelp(kAv, iAuth); return; }
+                // no more self - resets
+            //    else if ((iNum == LM_AUTH_PRIMARY || kAv == g_kWearer) && (sStr == "reset" || sStr == "runaway"))
+            //    {
+            //        llResetScript();
+            //    }
                 DialogBadwords(kAv, iAuth);                    
             }
         }

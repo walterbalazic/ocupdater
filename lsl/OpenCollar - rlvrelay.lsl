@@ -5,15 +5,12 @@ integer RELAY_CHANNEL = -1812221819;
 integer g_iRlvListener;
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-//integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-//integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507; // now will be used from rlvrelay to rlvmain, for ping only
-integer COMMAND_SAFEWORD = 510;
-integer COMMAND_RELAY_SAFEWORD = 511;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+//integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;
 
 integer LM_SETTING_SAVE = 2000;//scripts send messages on this channel to have settings saved to httpdb
                             //str must be in form of "token=value"
@@ -26,6 +23,8 @@ integer MENUNAME_REMOVE = 3003;
 
 integer RLV_CMD = 6000;
 integer RLV_REFRESH = 6001;//RLV plugins should reinstate their restrictions upon receiving this message.
+integer RLV_PONG = 6050; 
+integer RLV_SAFEWORD_RELAY = 6051;
 
 integer RLV_OFF = 6100; // send to inform plugins that RLV is disabled now, no message or key needed
 integer RLV_ON = 6101; // send to inform plugins that RLV is enabled now, no message or key needed
@@ -269,7 +268,7 @@ Dequeue()
     }
     sPrompt+="\nDo you want to allow this?";
     g_iAuthPending = TRUE;
-    g_kAuthMenuID = Dialog(g_kWearer, sPrompt, lButtons, [], 0, COMMAND_WEARER); // should be enough to dequeue...
+    g_kAuthMenuID = Dialog(g_kWearer, sPrompt, lButtons, [], 0, LM_AUTH_GUEST); // should be enough to dequeue...
 }
 
 
@@ -345,7 +344,7 @@ SafeWord()
 {
     if (g_iSafeMode)
     {
-        llMessageLinked(LINK_SET, COMMAND_RELAY_SAFEWORD, "","");
+        llMessageLinked(LINK_SET, RLV_SAFEWORD_RELAY, "","");
         notify(g_kWearer, "You have safeworded",TRUE);
         g_lTempBlackList=[];
         g_lTempWhiteList=[];
@@ -516,7 +515,7 @@ RemListItem(string sMsg, integer iAuth)
             g_lObjBlackListNames=llDeleteSubList(g_lObjBlackListNames,i,i);
         }
     }
-    else if (iAuth==COMMAND_WEARER && g_iMinBaseMode > 0)
+    else if (iAuth > LM_AUTH_PRIMARY && g_iMinBaseMode > 0)
     {
         notify(g_kWearer,"Sorry, your owner does not allow you to remove trusted sources.",TRUE);
     }
@@ -589,7 +588,7 @@ CleanQueue()
 // returns TRUE if it was a user command, FALSE if it is a LM from another subsystem
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum<COMMAND_OWNER || iNum>COMMAND_WEARER) return FALSE;
+    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
     if (llSubStringIndex(sStr,"relay") && sStr != "menu "+g_sSubMenu) return TRUE;
     if (!g_iRLV)
     {
@@ -598,7 +597,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
     }
     else if (sStr=="relay" || sStr == "menu "+g_sSubMenu) Menu(kID, iNum);
     else if ((sStr=llGetSubString(sStr,6,-1))=="minmode") MinModeMenu(kID, iNum);
-    else if (iNum!=COMMAND_OWNER&&kID!=g_kWearer)
+    else if (iNum!=LM_AUTH_PRIMARY&&kID!=g_kWearer)
         llInstantMessage(kID, "Sorry, only the wearer of the collar or their owner can change the relay options.");
     else if (sStr=="safeword") SafeWord();
     else if (sStr=="relay getdebug")
@@ -619,7 +618,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         else llOwnerSay("No pending relay request for now.");
     }
     else if (sStr=="access") ListsMenu(kID, iNum);
-    else if (iNum == COMMAND_OWNER && !llSubStringIndex(sStr,"minmode"))
+    else if (iNum == LM_AUTH_PRIMARY && !llSubStringIndex(sStr,"minmode"))
     {
         sStr=llGetSubString(sStr,8,-1);
         integer iOSuccess = 0;
@@ -960,22 +959,6 @@ default
 
     listen(integer iChan, string who, key kID, string sMsg)
     {
-//        if (llGetSubString(sMsg,-43,-1)==","+(string)g_kWearer+",!pong") //sloppy matching; the protocol document is stricter, but some in-world devices do not respect it
-//        {llOwnerSay("Forwarding "+sMsg+" to rlvmain");
-//            llMessageLinked(LINK_SET, COMMAND_RLV_RELAY, sMsg, kID);
-            // send the ping to rlvmain to manage restrictions of this old source
-//        }
-/*        else if (llStringLength(sMsg)> 700)
-        { //too long command, will make the relay crash in ask mode
-            sMsg="";
-            llOwnerSay("Dropping a too long command from " + llKey2Name(kID)+". Maybe a malicious device?. Relay frozen for the next 20s.");
-            g_iRecentSafeword=TRUE;
-            refreshRlvListener();
-            llSetTimerEvent(30.);
-            return;
-        }*/
-//        else
-//        { //in other cases we analyze the command here
         list lArgs=llParseString2List(sMsg,[","],[]);
         sMsg = "";  // free up memory in case of large messages
         if ((lArgs!=[])!=3) return;
@@ -986,7 +969,7 @@ default
         else if (g_kDebugRcpt) llRegionSayTo(g_kDebugRcpt, DEBUG_CHANNEL, "To relay: "+sIdent+","+sMsg);
         if (sMsg == "!pong")
         {//sloppy matching; the protocol document is stricter, but some in-world devices do not respect it
-            llMessageLinked(LINK_SET, COMMAND_RLV_RELAY, "ping,"+(string)g_kWearer+",!pong", kID);
+            llMessageLinked(LINK_SET, RLV_PONG, "", kID);
             return;
         }
         lArgs = [];  // free up memory in case of large messages

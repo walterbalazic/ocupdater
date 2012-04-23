@@ -18,12 +18,12 @@ key card_key;
 list settings_pairs;// stores all settings
 list settings_default; // Default settings placeholder.
 
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_WEARER = 503;
+integer LM_AUTH_OTHER = 504;
 
 integer POPUP_HELP = 1001;
 
@@ -251,12 +251,12 @@ default {
         {
             settings_pairs = DelSetting(settings_pairs, str);
         }
-        else if (num >= COMMAND_OWNER && num <= COMMAND_WEARER)
+        else if (num >= LM_AUTH_PRIMARY && num < LM_AUTH_OTHER)
         {
             integer loadurl = FALSE; integer remenu = FALSE;
             if (str == "wiki") loadurl = TRUE;
             else if (str == "menu "+WIKI) {loadurl = TRUE; remenu = TRUE;}
-            else if (num == COMMAND_OWNER || id == wearer)
+            else if (num == LM_AUTH_PRIMARY || id == wearer)
             {
                 if (str == "cachedump") DumpCache();
                 else if (str == "menu "+DUMPCACHE) { DumpCache(); remenu = TRUE; }

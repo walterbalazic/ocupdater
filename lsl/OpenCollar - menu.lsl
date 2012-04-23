@@ -22,12 +22,11 @@ integer g_iMenuStride = 3;
 integer g_iScriptCount;//when the scriptcount changes, rebuild menus
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -172,10 +171,10 @@ HandleMenuResponse(string entry)
 integer UserCommand(integer iNum, string sStr, key kID)
 {
     // SA: TODO delete this when transition is finished
-    if (iNum == COMMAND_NOAUTH) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
+    if (iNum == LM_AUTH_NONE) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
     // /SA
-    if (iNum == COMMAND_EVERYONE) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > COMMAND_EVERYONE || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
 
     list lParams = llParseString2List(sStr, [" "], []);
     string sCmd = llList2String(lParams, 0);
@@ -202,7 +201,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         // command (not only "menu") on behalf of an arbitrary avatar.
         // TODO: change the "HUD channel protocol" in order to make this possible.
         key kAv = (key)llList2String(lParams, 1);
-        if (KeyIsAv(kAv)) llMessageLinked(LINK_SET, COMMAND_NOAUTH, "menu", kAv);
+        if (KeyIsAv(kAv)) llMessageLinked(LINK_SET, LM_AUTH_NONE, "menu", kAv);
     }
     else if (sCmd == "refreshmenu")
     {
@@ -225,7 +224,7 @@ default
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
         // SA: delete this after transition is finished
-        if (iNum == COMMAND_NOAUTH) return;
+        if (iNum == LM_AUTH_NONE) return;
         // /SA
         if (UserCommand(iNum, sStr, kID)) return;
         else if (iNum == MENUNAME_RESPONSE)

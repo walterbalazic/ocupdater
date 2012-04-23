@@ -1,9 +1,6 @@
 //OpenCollar - rlvtp
 //Licensed under the GPLv2, with the additional requirement that these scripts remain "full perms" in Second Life.  See "OpenCollar License" for details.
 
-//3.004 - adding "accepttp" support.  No button, just automatically turned on for owner.
-//3.524+ - moving accepttp to the exception script.
-
 key g_kLMID;//store the request id here when we look up  a LM
 
 key kMenuID;
@@ -55,13 +52,11 @@ integer g_iRLVOn=TRUE;
 key g_kWearer;
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-//integer COMMAND_RLV_RELAY = 507;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -285,8 +280,8 @@ ClearSettings()
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < COMMAND_OWNER || iNum > COMMAND_WEARER) return FALSE;
-    if ((sStr == "reset" || sStr == "runaway") && (kID == g_kWearer || iNum == COMMAND_WEARER))
+    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
+    if ((sStr == "reset" || sStr == "runaway") && (kID == g_kWearer || kID == g_kWearer))
     {   //clear db, reset script
         //llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sDBToken, NULL_KEY);
         //llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sExToken, NULL_KEY);
@@ -337,9 +332,9 @@ integer UserCommand(integer iNum, string sStr, key kID)
             string sBehavior = llList2String(llParseString2List(sThisItem, ["=", ":"], []), 0);
             if (sBehavior == "tpto")
             {
-                //if (iNum == COMMAND_WEARER)
+                //if (iNum > LM_AUTH_SECONDARY)
                 //{
-                //    llInstantMessage(llGetOwner(), "Sorry, but RLV commands may only be given by owner, secowner, or group (if set).");
+                //    llInstantMessage(llGetOwner(), "Sorry, but RLV commands may only be given by owners.");
                 //    return;
                 //}
                 llMessageLinked(LINK_SET, RLV_CMD, sThisItem, NULL_KEY);
@@ -347,9 +342,9 @@ integer UserCommand(integer iNum, string sStr, key kID)
             else if (llListFindList(g_lRLVcmds, [sBehavior]) != -1)
             {   //this is a behavior that we handle.
                 //filter commands from wearer, if wearer is not owner
-                if (iNum == COMMAND_WEARER)
+                if (iNum > LM_AUTH_SECONDARY)
                 {
-                    llOwnerSay("Sorry, but RLV commands may only be given by owner, secowner, or group (if set).");
+                    llOwnerSay("Sorry, but RLV restrictions may only be set or unset by owners.");
                     return TRUE;
                 }
 
@@ -370,7 +365,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
                 }
                 iChange = TRUE;
             }
-            else if (sBehavior == "clear" && iNum == COMMAND_OWNER)
+            else if (sBehavior == "clear" && iNum == LM_AUTH_PRIMARY)
             {
                 ClearSettings();
             }

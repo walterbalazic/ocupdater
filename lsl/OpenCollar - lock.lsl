@@ -13,7 +13,6 @@ integer g_iListener;
 
 integer g_iLocked = FALSE;
 
-string g_sLockPrimName="Lock"; // Description for lock elements to recognize them //EB //SA: to be removed eventually (kept for compatibility)
 string g_sOpenLockPrimName="OpenLock"; // Prim description of elements that should be shown when unlocked
 string g_sClosedLockPrimName="ClosedLock"; // Prim description of elements that should be shown when locked
 list g_lClosedLockElements; //to store the locks prim to hide or show //EB
@@ -23,14 +22,12 @@ string LOCK = "*Lock*";
 string UNLOCK = "*Unlock*";
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -211,7 +208,7 @@ default
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        if (iNum >= COMMAND_OWNER && iNum <=COMMAND_WEARER)
+        if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER)
         {
             if (sStr == "settings")
             {
@@ -220,7 +217,7 @@ default
             }
             else if (sStr == "lock" || (!g_iLocked && sStr == "togglelock"))
             {
-                if (iNum == COMMAND_OWNER || kID == g_kWearer )
+                if (iNum == LM_AUTH_PRIMARY || kID == g_kWearer )
                 {   //primary owners and wearer can lock and unlock. no one else
                     Lock();
                     //            owner = kID; //need to store the one who locked (who has to be also owner) here
@@ -231,7 +228,7 @@ default
             }
             else if (sStr == "unlock" || (g_iLocked && sStr == "togglelock"))
             {
-                if (iNum == COMMAND_OWNER)
+                if (iNum == LM_AUTH_PRIMARY)
                 {  //primary owners can lock and unlock. no one else
                     Unlock();
                     Notify(kID, "Unlocked.", FALSE);
@@ -242,7 +239,7 @@ default
             
             else if (sStr == "menu " + LOCK)
             {
-                if (iNum == COMMAND_OWNER || kID == g_kWearer )
+                if (iNum == LM_AUTH_PRIMARY || kID == g_kWearer )
                 {   //primary owners and wearer can lock. no one else
                     Lock();
                     Notify(kID, "Locked.", FALSE);
@@ -253,7 +250,7 @@ default
             }
             else if (sStr == "menu " + UNLOCK)
             {
-                if (iNum == COMMAND_OWNER)
+                if (iNum == LM_AUTH_PRIMARY)
                 {  //primary owners can unlock. no one else
                     Unlock();
                     Notify(kID, "Unlocked.", FALSE);

@@ -41,14 +41,12 @@ string g_sAppEngine_Url = "http://data.mycollar.org/"; //defaul OC url, can be c
 
 string g_sAnimToken = "currentpose";
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
-integer COMMAND_WEARERLOCKEDOUT = 521;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //EXTERNAL MESSAGE MAP
 integer EXT_COMMAND_COLLAR = 499; //added for collar or cuff commands to put ao to pause or standOff
@@ -412,10 +410,10 @@ CreateAnimList()
 integer UserCommand(integer iNum, string sStr, key kID)
 {
     // SA: TODO delete this when transition is finished
-    if (iNum == COMMAND_NOAUTH) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
+    if (iNum == LM_AUTH_NONE) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
     // /SA
-    if (iNum == COMMAND_EVERYONE) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > COMMAND_EVERYONE || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
 
     list lParams = llParseString2List(sStr, [" "], []);
     string sCommand = llToLower(llList2String(lParams, 0));
@@ -448,7 +446,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
             Notify(kID, "Current Pose: " + g_sCurrentPose, FALSE);
         }
     }
-    else if ((sStr == "runaway" || sStr == "reset") && (iNum == COMMAND_OWNER || iNum == COMMAND_WEARER))
+    else if ((sStr == "runaway" || sStr == "reset") && (iNum == LM_AUTH_PRIMARY || kID == g_kWearer))
     {   //stop pose
         if (g_sCurrentPose != "")
         {
@@ -462,7 +460,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         PoseMenu(kID, 0, iNum);
     }
     //added for anim lock
-    else if((llGetSubString(sStr, llStringLength(TICKED), -1) == ANIMLOCK) && (iNum == COMMAND_OWNER))
+    else if((llGetSubString(sStr, llStringLength(TICKED), -1) == ANIMLOCK) && (iNum == LM_AUTH_PRIMARY))
     {
         integer iIndex = llListFindList(g_lAnimButtons, [sStr]);
         if(llGetSubString(sStr, 0, llStringLength(TICKED) - 1) == TICKED)
@@ -489,7 +487,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         }
         AnimMenu(kID, iNum);
     }
-    else if((sCommand == llToLower(ANIMLOCK)) && (iNum == COMMAND_OWNER))
+    else if((sCommand == llToLower(ANIMLOCK)) && (iNum == LM_AUTH_PRIMARY))
     {
         if(sValue == "on" && !g_iAnimLock)
         {
@@ -518,7 +516,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
     }
     else if(llGetSubString(sStr, llStringLength(TICKED), -1) == HEIGHTFIX)
     {
-        if ((iNum == COMMAND_OWNER)||(kID == g_kWearer))
+        if ((iNum == LM_AUTH_PRIMARY)||(kID == g_kWearer))
         {
             if(llGetSubString(sStr, 0, llStringLength(TICKED) - 1) == TICKED)
             {
@@ -676,7 +674,7 @@ default
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
         // SA: TODO delete this after transition is finished
-        if (iNum == COMMAND_NOAUTH) return;
+        if (iNum == LM_AUTH_NONE) return;
         // /SA
         if (UserCommand(iNum, sStr, kID)) return;
         else if (iNum == ANIM_START)
@@ -702,7 +700,7 @@ default
                 }
             }
         }
-        else if (iNum == COMMAND_SAFEWORD)
+        else if (iNum == LM_DO_SAFEWORD)
         { // saefword command recieved, release animation
             if(llGetInventoryType(g_sCurrentPose) == INVENTORY_ANIMATION)
             {
@@ -772,7 +770,7 @@ default
                         Notify(kAv, "Attempting to trigger the AO menu.  This will only work if " + llKey2Name(g_kWearer) + " is wearing the OpenCollar Sub AO.", FALSE);
                         AOMenu(kAv, iAuth);
                         //llSay(g_iInterfaceChannel, AO_MENU + "|" + (string)kID);
-                        //                llMessageLinked(LINK_SET, COMMAND_NOAUTH, "triggerao", kID);
+                        //                llMessageLinked(LINK_SET, LM_AUTH_NONE, "triggerao", kID);
                     }
                     else if (sMessage == g_sGiveAO)
                     {    //queue a delivery

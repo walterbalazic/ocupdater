@@ -104,12 +104,11 @@ integer g_iAppLock = FALSE;
 string g_sAppLockToken = "AppLock";
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -338,13 +337,13 @@ default
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        if (sStr == "reset" && (iNum == COMMAND_OWNER || iNum == COMMAND_WEARER))
+        if (sStr == "reset" && (iNum == LM_AUTH_PRIMARY || kID == g_kWearer))
         {
             //clear saved settings
             llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sDBToken, NULL_KEY);
             llResetScript();
         }
-        else if (iNum >= COMMAND_OWNER && iNum <= COMMAND_WEARER)
+        else if (iNum >= LM_AUTH_PRIMARY && iNum <= LM_AUTH_GUEST)
         {
             if (sStr == "settings")
             {
@@ -352,7 +351,7 @@ default
             }
             else if (StartsWith(sStr, "setcolor"))
             {
-                if (kID!=g_kWearer && iNum!=COMMAND_OWNER)
+                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the colors.", FALSE);
                 }
@@ -371,7 +370,7 @@ default
             }
             else if (sStr == "menu "+ g_sSubMenu || sStr == "colors")
             {
-                if (kID!=g_kWearer && iNum!=COMMAND_OWNER)
+                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the colors.", FALSE);
                     llMessageLinked(LINK_SET, iNum, "menu "+g_sParentMenu, kID);
@@ -389,7 +388,7 @@ default
             }
             else if (llGetSubString(sStr,0,13) == "lockappearance")
             {
-                if (iNum == COMMAND_OWNER)
+                if (iNum == LM_AUTH_PRIMARY)
                 {
                     if(llGetSubString(sStr, -1, -1) == "0")
                     {

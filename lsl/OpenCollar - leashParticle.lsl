@@ -4,13 +4,12 @@
 //Split from the leash script in April 2010 by Garvin Twine
 
 // - MESSAGE MAP
-//integer COMMAND_NOAUTH      = 0;
-integer COMMAND_OWNER       = 500;
-integer COMMAND_SECOWNER    = 501;
-integer COMMAND_GROUP       = 502;
-integer COMMAND_WEARER      = 503;
-integer COMMAND_EVERYONE    = 504;
-integer COMMAND_SAFEWORD    = 510;
+//integer LM_AUTH_NONE      = 0;
+integer LM_AUTH_PRIMARY       = 500;
+integer LM_AUTH_SECONDARY    = 501;
+integer LM_AUTH_GUEST       = 502;
+integer LM_AUTH_OTHER    = 504;
+integer LM_DO_SAFEWORD    = 510;
 integer POPUP_HELP          = 1001;
 // -- SETTINGS
 // - Setting strings must be in the format: "token=value"
@@ -564,16 +563,16 @@ default
                 }
             }
         }
-        else if (iNum >= COMMAND_OWNER && iNum <= COMMAND_WEARER)
+        else if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER)
         {
             if (llToLower(sMessage) == llToLower(SUBMENU))
             {
-                if(iNum == COMMAND_OWNER) OptionsMenu(kMessageID, iNum);
+                if(iNum == LM_AUTH_PRIMARY) OptionsMenu(kMessageID, iNum);
                 else Notify(kMessageID, "Leash Options can only be changed by Collar Owners.", FALSE);
             }
             else if (sMessage == "menu "+SUBMENU)
             {
-                if(iNum == COMMAND_OWNER) OptionsMenu(kMessageID, iNum);
+                if(iNum == LM_AUTH_PRIMARY) OptionsMenu(kMessageID, iNum);
                 else
                 {
                     Notify(kMessageID, "Leash Options can only be changed by Collar Owners.", FALSE);

@@ -24,12 +24,11 @@ string g_sAppLockToken = "AppLock";
 
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -298,7 +297,7 @@ default
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        if (iNum >= COMMAND_OWNER && iNum <= COMMAND_WEARER)
+        if (iNum >= LM_AUTH_PRIMARY && iNum <= LM_AUTH_GUEST)
         {
             list lParams = llParseString2List(sStr, [" "], []);
             string sCommand = llToLower(llList2String(lParams, 0));
@@ -362,7 +361,7 @@ default
             }
             else if (llGetSubString(sStr,0,13) == "lockappearance")
             {
-                if (iNum == COMMAND_OWNER)
+                if (iNum == LM_AUTH_PRIMARY)
                 {
                     if(llGetSubString(sStr, -1, -1) == "0")
                     {
@@ -381,14 +380,7 @@ default
                     Notify(kID, "Hiden", FALSE);
                 }
             }
-            else if (iNum == COMMAND_OWNER && sStr == "reset")
-            {
-                SetAllElementsAlpha(1.0);
-                // no more self - resets
-                //    llResetScript();
-            }
-            //else if (iNum == COMMAND_WEARER && (sStr == "reset" || sStr == "runaway"))
-            else if ((iNum == COMMAND_WEARER || kID == llGetOwner()) && (sStr == "reset" || sStr == "runaway"))
+            else if ((iNum == LM_AUTH_PRIMARY || kID == g_kWearer) && (sStr == "reset" || sStr == "runaway"))
             {
                 SetAllElementsAlpha(1.0);
                 // no more self - resets

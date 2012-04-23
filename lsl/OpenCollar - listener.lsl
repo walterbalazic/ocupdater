@@ -16,14 +16,12 @@ integer g_iLockMesiterListener;
 integer g_iHUDListener;
 
 //MESSAGE MAP
-integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
-integer COMMAND_RLV_RELAY = 507;
-integer COMMAND_SAFEWORD = 510;  // new for safeword
+integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
+integer LM_DO_SAFEWORD = 599;  // new for safeword
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
 
@@ -211,22 +209,22 @@ default
             //check for a ping, if we find one we request auth and answer in LMs with a pong
             if (sMsg==(string)g_kWearer + ":ping")
             {
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, "ping", llGetOwnerKey(kID));
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, "ping", llGetOwnerKey(kID));
             }
             // an object wants to know the version, we check if it is allowed to
             if (sMsg==(string)g_kWearer + ":version")
             {
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, "objectversion", llGetOwnerKey(kID));
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, "objectversion", llGetOwnerKey(kID));
             }
             // it it is not a ping, it should be a command for use, to make sure it has to have the key in front of it
             else if (StartsWith(sMsg, (string)g_kWearer + ":"))
             {
                 sMsg = llGetSubString(sMsg, 37, -1);
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
             }
             else
             {
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, sMsg, llGetOwnerKey(kID));
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, llGetOwnerKey(kID));
             }
         }
 
@@ -236,7 +234,7 @@ default
         }
         else if((kID == g_kWearer) && ((sMsg == g_sSafeWord)||(sMsg == "(("+g_sSafeWord+"))")))
         { // safeword can be the safeword or safeword said in OOC chat "((SAFEWORD))"
-            llMessageLinked(LINK_SET, COMMAND_SAFEWORD, "", NULL_KEY);
+            llMessageLinked(LINK_SET, LM_DO_SAFEWORD, "", NULL_KEY);
             llOwnerSay("You used your safeword, your owner will be notified you did.");
         }
         //added for attachment auth (garvin)
@@ -285,18 +283,18 @@ default
             {
                 //trim
                 sMsg = llGetSubString(sMsg, llStringLength(g_sPrefix), -1);
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
             }
             else if (llGetSubString(sMsg, 0, 0) == "*")
             {
                 sMsg = llGetSubString(sMsg, 1, -1);
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
             }
             // added # as prefix for all subs aroubd BUT yourself
             else if ((llGetSubString(sMsg, 0, 0) == "#") && (kID != g_kWearer))
             {
                 sMsg = llGetSubString(sMsg, 1, -1);
-                llMessageLinked(LINK_SET, COMMAND_NOAUTH, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
             }
         }
     }
@@ -304,7 +302,7 @@ default
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
 
-        if (iNum >= COMMAND_OWNER && iNum <= COMMAND_WEARER)
+        if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER)
         {
             list lParams = llParseString2List(sStr, [" "], []);
             string sCommand = llToLower(llList2String(lParams, 0));
@@ -321,7 +319,7 @@ default
                 llSay(GetOwnerChannel(kID,1111),(string)g_kWearer+":pong");
             }
             //handle changing prefix and channel from owner
-            else if (iNum == COMMAND_OWNER)
+            else if (iNum == LM_AUTH_PRIMARY)
             {
                 if (sCommand == "prefix")
                 {
@@ -392,7 +390,7 @@ default
                 //                    }
                 //                    else if (sStr == g_sSafeWord)
                 //                    { //safeWord used with prefix
-                //                        llMessageLinked(LINK_SET, COMMAND_SAFEWORD, "", NULL_KEY);
+                //                        llMessageLinked(LINK_SET, LM_DO_SAFEWORD, "", NULL_KEY);
                 //                        llOwnerSay("You used your safeword, your owner will be notified you dkID.");
                 //                    }
                 //                }
@@ -414,7 +412,7 @@ default
                 }
                 else if (sStr == g_sSafeWord)
                 { //safeword used with prefix
-                    llMessageLinked(LINK_SET, COMMAND_SAFEWORD, "", NULL_KEY);
+                    llMessageLinked(LINK_SET, LM_DO_SAFEWORD, "", NULL_KEY);
                     llOwnerSay("You used your safeword, your owner will be notified you did.");
                 }
             }

@@ -7,12 +7,11 @@ string g_sFeatureName = "FloatText";
 integer g_iUpdatePin = 4711;
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
 integer UPDATE = 10001;
@@ -138,7 +137,7 @@ default {
         list lParams = llParseString2List(sStr, [" "], []);
         string sCommand = llList2String(lParams, 0);
         string sValue = llToLower(llList2String(lParams, 1));
-        if (iNum >= COMMAND_OWNER && iNum <= COMMAND_WEARER) {
+        if (iNum >= LM_AUTH_PRIMARY && iNum <= LM_AUTH_GUEST) {
             if (sStr == "menu " + g_sFeatureName) {
                 //popup help on how to set label
                 llMessageLinked(LINK_ROOT, POPUP_HELP, "To set floating text , say _PREFIX_text followed by the text you wish to set.  \nExample: _PREFIX_text I have text above my head!", kID);
@@ -148,7 +147,7 @@ default {
                 lParams = llDeleteSubList(lParams, 0, 0);//pop off the "text" command
                 string sNewText = llDumpList2String(lParams, " ");
                 if (g_iOn) {
-                    //only change text if commander has smae or greater auth
+                    //only change text if commander has same or greater auth
                     if (iNum <= g_iLastRank) {
                         if (sNewText == "") {
                             g_sText = "";
@@ -176,11 +175,11 @@ default {
                 if (g_iOn) {
                     //only turn off if commander auth is >= g_iLastRank
                     if (iNum <= g_iLastRank) {
-                        g_iLastRank = COMMAND_WEARER;
+                        g_iLastRank = LM_AUTH_GUEST;
                         HideText();
                     }
                 } else {
-                    g_iLastRank = COMMAND_WEARER;
+                    g_iLastRank = LM_AUTH_GUEST;
                     HideText();
                 }
             } else if (sCommand == "texton") {
@@ -188,7 +187,7 @@ default {
                     g_iLastRank = iNum;
                     ShowText(g_sText);
                 }
-            } else if (sStr == "reset" && (iNum == COMMAND_OWNER || iNum == COMMAND_WEARER)) {
+            } else if (sStr == "reset" && (iNum == LM_AUTH_PRIMARY || g_kWearer == kID)) {
                 g_sText = "";
                 HideText();
                 llResetScript();

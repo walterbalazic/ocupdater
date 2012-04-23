@@ -98,12 +98,11 @@ list ATTACH_POINTS = [//these are ordered so that their indices in the list corr
         ];
 
 //MESSAGE MAP
-//integer COMMAND_NOAUTH = 0;
-integer COMMAND_OWNER = 500;
-integer COMMAND_SECOWNER = 501;
-integer COMMAND_GROUP = 502;
-integer COMMAND_WEARER = 503;
-integer COMMAND_EVERYONE = 504;
+//integer LM_AUTH_NONE = 0;
+integer LM_AUTH_PRIMARY = 500;
+integer LM_AUTH_SECONDARY = 501;
+integer LM_AUTH_GUEST = 502;
+integer LM_AUTH_OTHER = 504;
 
 integer POPUP_HELP = 1001;
 
@@ -415,8 +414,8 @@ DoUnlockAll(key kID)
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum == COMMAND_EVERYONE) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > COMMAND_EVERYONE || iNum < COMMAND_OWNER) return FALSE; // sanity check
+    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [":", "="], []);
     string sCommand = llList2String(lParams, 0);
     //Debug(sStr + " ## " + sCommand);
@@ -426,18 +425,24 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else if (llListFindList(g_lRLVcmds, [sCommand]) != -1)
     {    //we've received an RLV command that we control.  only execute if not sub
-        if (iNum == COMMAND_WEARER)
+	list lAtoms = llParseString2List(sStr, ["="], []);
+        string sOption = llList2String(lAtoms, 0);
+        string sParam = llList2String(lAtoms, 1);
+	lAtoms = [];
+        if (sParam == "force")
+	{ // "force" commands cannot cause "too much" trouble, all guests, including the sub can use them
+            llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
+	}
+        else if (iNum > LM_AUTH_SECONDARY)
         {
-            llOwnerSay("Sorry, but RLV commands may only be given by owner, secowner, or group (if set).");
+            llOwnerSay("Sorry, but RLV restrictions may only be set or unset by owners.");
         }
         else
         {
-            llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
-            string sOption = llList2String(llParseString2List(sStr, ["="], []), 0);
-            string sParam = llList2String(llParseString2List(sStr, ["="], []), 1);
             integer iIndex = llListFindList(g_lSettings, [sOption]);
-            string opt1 = llList2String(llParseString2List(sOption, [":"], []), 0);
-            string opt2 = llList2String(llParseString2List(sOption, [":"], []), 1);
+            //string opt1 = llList2String(llParseString2List(sOption, [":"], []), 0);
+            //string opt2 = llList2String(llParseString2List(sOption, [":"], []), 1);
+            llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
             if (sParam == "n")
             {
                 if (iIndex == -1)
@@ -485,7 +490,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else  if (llGetSubString(sStr, 0, 11) == "lockclothing")            {
         string sMessage = llGetSubString(sStr, 13, -1);
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for locking clothes.", FALSE);
         }
@@ -507,7 +512,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else if (llGetSubString(sStr, 0, 13) == "unlockclothing")
     {
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for unlocking clothes.", FALSE);
         }
@@ -536,7 +541,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     {
         string sPoint = llGetSubString(sStr, 15, -1);
 
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for locking attachments.", FALSE);
         }
@@ -554,7 +559,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else  if (sStr == "lockall")
     {
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for locking attachments.", FALSE);
         }
@@ -567,7 +572,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else  if (sStr == "unlockall")
     {
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for unlocking attachments.", FALSE);
         }
@@ -580,7 +585,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else if (llGetSubString(sStr, 0, 15) == "unlockattachment")
     {
-        if (iNum == COMMAND_WEARER)
+        if (iNum > LM_AUTH_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for unlocking attachments.", FALSE);
         }
@@ -633,7 +638,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
         QueryAttachments(kID, iNum);
     }
     // rlvoff -> we have to turn the menu off too
-    else if (iNum>=COMMAND_OWNER && sStr=="rlvoff") g_iRLVOn=FALSE;
+    else if (iNum>=LM_AUTH_PRIMARY && sStr=="rlvoff") g_iRLVOn=FALSE;
     return TRUE;
 }
 
