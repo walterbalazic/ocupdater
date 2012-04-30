@@ -18,12 +18,12 @@ key card_key;
 list settings_pairs;// stores all settings
 list settings_default; // Default settings placeholder.
 
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_WEARER = 503;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_WEARER = 503;
+integer LM_AUTHED_DENIED = 526;
 
 integer POPUP_HELP = 1001;
 
@@ -148,6 +148,18 @@ Refresh() {
     SendValues();
 }
 
+resetscripts() // reset all scripts except this one
+{
+    integer iCount = llGetInventoryNumber(INVENTORY_SCRIPT);
+    string sMyName = llGetScriptName();
+    while (iCount)
+    {
+        string sName = llGetInventoryName(INVENTORY_SCRIPT, iCount--);
+	if (sName != sMyName)
+            llResetOtherScript(sName);
+    }
+}
+
 default {
     state_entry() {
         //save wearer key
@@ -174,6 +186,7 @@ default {
             llSleep(0.5);
             Refresh();        
         } else {
+	    resetscripts();
             llResetScript();
         }
     }
@@ -251,16 +264,17 @@ default {
         {
             settings_pairs = DelSetting(settings_pairs, str);
         }
-        else if (num >= LM_AUTH_PRIMARY && num < LM_AUTH_OTHER)
+        else if (num >= LM_AUTHED_PRIMARY && num < LM_AUTHED_DENIED)
         {
             integer loadurl = FALSE; integer remenu = FALSE;
             if (str == "wiki") loadurl = TRUE;
             else if (str == "menu "+WIKI) {loadurl = TRUE; remenu = TRUE;}
-            else if (num == LM_AUTH_PRIMARY || id == wearer)
+            else if (num == LM_AUTHED_PRIMARY || id == wearer)
             {
                 if (str == "cachedump") DumpCache();
                 else if (str == "menu "+DUMPCACHE) { DumpCache(); remenu = TRUE; }
-                else if (str == "reset" || str == "runaway") llResetScript();
+                else if (str == "reset" || str == "runaway") {resetscripts(); llResetScript();}
+                else if (str == "resetscripts") {resetscripts(); llSleep(2.5); Refresh();}
                 else return;
             }
             else return;

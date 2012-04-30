@@ -104,11 +104,11 @@ integer g_iAppLock = FALSE;
 string g_sAppLockToken = "AppLock";
 
 //MESSAGE MAP
-//integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+//integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -337,13 +337,13 @@ default
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        if (sStr == "reset" && (iNum == LM_AUTH_PRIMARY || kID == g_kWearer))
+        if (sStr == "reset" && (iNum == LM_AUTHED_PRIMARY || kID == g_kWearer))
         {
             //clear saved settings
             llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sDBToken, NULL_KEY);
             llResetScript();
         }
-        else if (iNum >= LM_AUTH_PRIMARY && iNum <= LM_AUTH_GUEST)
+        else if (iNum >= LM_AUTHED_PRIMARY && iNum <= LM_AUTHED_GUEST)
         {
             if (sStr == "settings")
             {
@@ -351,7 +351,7 @@ default
             }
             else if (StartsWith(sStr, "setcolor"))
             {
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the colors.", FALSE);
                 }
@@ -370,7 +370,7 @@ default
             }
             else if (sStr == "menu "+ g_sSubMenu || sStr == "colors")
             {
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the colors.", FALSE);
                     llMessageLinked(LINK_SET, iNum, "menu "+g_sParentMenu, kID);
@@ -388,7 +388,7 @@ default
             }
             else if (llGetSubString(sStr,0,13) == "lockappearance")
             {
-                if (iNum == LM_AUTH_PRIMARY)
+                if (iNum == LM_AUTHED_PRIMARY)
                 {
                     if(llGetSubString(sStr, -1, -1) == "0")
                     {

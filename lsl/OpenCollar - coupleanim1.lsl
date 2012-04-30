@@ -50,11 +50,11 @@ string g_sSubAnim;
 string g_sDomAnim;
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -434,7 +434,7 @@ state ready
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
         //if you don't care who gave the command, so long as they're one of the above, you can just do this instead:
-        if (iNum >= LM_AUTH_PRIMARY && iNum <= LM_AUTH_GUEST)
+        if (iNum >= LM_AUTHED_PRIMARY && iNum <= LM_AUTHED_GUEST)
         {
             //the command was given by either owner, secowner, group member, or wearer
             list lParams = llParseString2List(sStr, [" "], []);

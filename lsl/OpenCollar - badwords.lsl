@@ -8,11 +8,11 @@ string g_sPenance = "pet is very sorry for her mistake";
 integer g_iListener;
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
@@ -218,7 +218,7 @@ Notify(key kID, string sMsg, integer iAlsoNotifyWearer) {
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum > LM_AUTH_GUEST || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (iNum > LM_AUTHED_GUEST || iNum < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [" "], []);
     string sCommand = llList2String(lParams, 0);
     if (sStr == "menu "+g_sSubMenu)
@@ -231,14 +231,14 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
         Notify(kID, "Bad Word Anim: " + g_sBadWordAnim,FALSE);
         Notify(kID, "Penance: " + g_sPenance,FALSE);
     }
-    else if(iNum > LM_AUTH_PRIMARY)
+    else if(iNum > LM_AUTHED_PRIMARY)
     {
         if(sCommand == "badwords")
         {
             Notify(kID, "Sorry, only the owner can toggle badwords.",FALSE);
         }
     }
-    else // LM_AUTH_PRIMARY only
+    else // LM_AUTHED_PRIMARY only
     {
         string sValue = llList2String(lParams, 1);
         if(sStr == "badwords") DialogBadwords(kID, iNum);
@@ -454,7 +454,7 @@ default
                 }
                 else if(sMessage == "Quick Help") { DialogHelp(kAv, iAuth); return; }
                 // no more self - resets
-            //    else if ((iNum == LM_AUTH_PRIMARY || kAv == g_kWearer) && (sStr == "reset" || sStr == "runaway"))
+            //    else if ((iNum == LM_AUTHED_PRIMARY || kAv == g_kWearer) && (sStr == "reset" || sStr == "runaway"))
             //    {
             //        llResetScript();
             //    }

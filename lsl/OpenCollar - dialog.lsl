@@ -2,11 +2,11 @@
 //an adaptation of Schmobag Hogfather's SchmoDialog script
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
@@ -365,7 +365,7 @@ default
             list ubuttons = llParseString2List(llList2String(lParams, 4), ["`"], []);        
             integer iAuth;
             if (llGetListLength(lParams)>=6) iAuth = llList2Integer(lParams, 5);
-            else iAuth = LM_AUTH_NONE;
+            else iAuth = LM_TOAUTH_NEW;
             
             //first clean out any strides already in place for that user.  prevents having lots of listens open if someone uses the menu several times while sat
             ClearUser(kRCPT);
@@ -397,7 +397,7 @@ default
         }
         else if (llGetSubString(sStr, 0, 10) == "remotemenu:")
         {
-            if (iNum == LM_AUTH_PRIMARY || iNum == LM_AUTH_SECONDARY)
+            if (iNum == LM_AUTHED_PRIMARY || iNum == LM_AUTHED_SECONDARY)
             {
                 string sCmd = llGetSubString(sStr, 11, -1);
                 Debug("dialog cmd:" + sCmd);

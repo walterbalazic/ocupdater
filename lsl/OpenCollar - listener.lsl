@@ -16,11 +16,11 @@ integer g_iLockMesiterListener;
 integer g_iHUDListener;
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;  // new for safeword
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -209,22 +209,22 @@ default
             //check for a ping, if we find one we request auth and answer in LMs with a pong
             if (sMsg==(string)g_kWearer + ":ping")
             {
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, "ping", llGetOwnerKey(kID));
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, "ping", llGetOwnerKey(kID));
             }
             // an object wants to know the version, we check if it is allowed to
             if (sMsg==(string)g_kWearer + ":version")
             {
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, "objectversion", llGetOwnerKey(kID));
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, "objectversion", llGetOwnerKey(kID));
             }
             // it it is not a ping, it should be a command for use, to make sure it has to have the key in front of it
             else if (StartsWith(sMsg, (string)g_kWearer + ":"))
             {
                 sMsg = llGetSubString(sMsg, 37, -1);
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, sMsg, kID);
             }
             else
             {
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, llGetOwnerKey(kID));
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, sMsg, llGetOwnerKey(kID));
             }
         }
 
@@ -283,18 +283,18 @@ default
             {
                 //trim
                 sMsg = llGetSubString(sMsg, llStringLength(g_sPrefix), -1);
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, sMsg, kID);
             }
             else if (llGetSubString(sMsg, 0, 0) == "*")
             {
                 sMsg = llGetSubString(sMsg, 1, -1);
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, sMsg, kID);
             }
             // added # as prefix for all subs aroubd BUT yourself
             else if ((llGetSubString(sMsg, 0, 0) == "#") && (kID != g_kWearer))
             {
                 sMsg = llGetSubString(sMsg, 1, -1);
-                llMessageLinked(LINK_SET, LM_AUTH_NONE, sMsg, kID);
+                llMessageLinked(LINK_SET, LM_TOAUTH_NEW, sMsg, kID);
             }
         }
     }
@@ -302,7 +302,7 @@ default
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
 
-        if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER)
+        if (iNum >= LM_AUTHED_PRIMARY && iNum < LM_AUTHED_DENIED)
         {
             list lParams = llParseString2List(sStr, [" "], []);
             string sCommand = llToLower(llList2String(lParams, 0));
@@ -319,7 +319,7 @@ default
                 llSay(GetOwnerChannel(kID,1111),(string)g_kWearer+":pong");
             }
             //handle changing prefix and channel from owner
-            else if (iNum == LM_AUTH_PRIMARY)
+            else if (iNum == LM_AUTHED_PRIMARY)
             {
                 if (sCommand == "prefix")
                 {

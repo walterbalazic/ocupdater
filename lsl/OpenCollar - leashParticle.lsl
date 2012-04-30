@@ -4,11 +4,11 @@
 //Split from the leash script in April 2010 by Garvin Twine
 
 // - MESSAGE MAP
-//integer LM_AUTH_NONE      = 0;
-integer LM_AUTH_PRIMARY       = 500;
-integer LM_AUTH_SECONDARY    = 501;
-integer LM_AUTH_GUEST       = 502;
-integer LM_AUTH_OTHER    = 504;
+//integer LM_TOAUTH_NEW      = 0;
+integer LM_AUTHED_PRIMARY       = 500;
+integer LM_AUTHED_SECONDARY    = 501;
+integer LM_AUTHED_GUEST       = 502;
+integer LM_AUTHED_DENIED    = 504;
 integer LM_DO_SAFEWORD    = 510;
 integer POPUP_HELP          = 1001;
 // -- SETTINGS
@@ -563,16 +563,16 @@ default
                 }
             }
         }
-        else if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER)
+        else if (iNum >= LM_AUTHED_PRIMARY && iNum < LM_AUTHED_DENIED)
         {
             if (llToLower(sMessage) == llToLower(SUBMENU))
             {
-                if(iNum == LM_AUTH_PRIMARY) OptionsMenu(kMessageID, iNum);
+                if(iNum == LM_AUTHED_PRIMARY) OptionsMenu(kMessageID, iNum);
                 else Notify(kMessageID, "Leash Options can only be changed by Collar Owners.", FALSE);
             }
             else if (sMessage == "menu "+SUBMENU)
             {
-                if(iNum == LM_AUTH_PRIMARY) OptionsMenu(kMessageID, iNum);
+                if(iNum == LM_AUTHED_PRIMARY) OptionsMenu(kMessageID, iNum);
                 else
                 {
                     Notify(kMessageID, "Leash Options can only be changed by Collar Owners.", FALSE);

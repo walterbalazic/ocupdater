@@ -7,7 +7,7 @@
 // This script handles the touch_start and touch_end events and sends relevant commands as LMs to other plugins.
 //
 
-integer LM_AUTH_NONE = 0;
+integer LM_TOAUTH_NEW = 532;
 
 integer TOUCH_REQUEST = -9500;
 integer TOUCH_CANCEL = -9501;
@@ -55,7 +55,7 @@ integer sendPermanentCommandFromLink(integer iLinkNumber, string sType, key kTou
         else if (!llSubStringIndex(sDescToken, sType+":"))
         {                
             sCommand = llGetSubString(sDescToken, llStringLength(sType)+1, -1);
-            if (sCommand != "") llMessageLinked(LINK_SET, LM_AUTH_NONE, sCommand, kToucher);
+            if (sCommand != "") llMessageLinked(LINK_SET, LM_TOAUTH_NEW, sCommand, kToucher);
             return TRUE;
         }
     }
@@ -90,7 +90,7 @@ sendCommandFromLink(integer iLinkNumber, string sType, key kToucher)
     {
         if (sendPermanentCommandFromLink(LINK_ROOT, sType, kToucher)) return;
     }
-    if (sType == "touchstart") llMessageLinked(LINK_SET, LM_AUTH_NONE, "menu", kToucher);
+    if (sType == "touchstart") llMessageLinked(LINK_SET, LM_TOAUTH_NEW, "menu", kToucher);
 }
 
 default

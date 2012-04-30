@@ -30,8 +30,8 @@
 
 key wearer;
 
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
 integer LM_SETTING_SAVE = 2000;
 integer LM_SETTING_REQUEST = 2001;
 integer LM_SETTING_RESPONSE = 2002;
@@ -131,7 +131,7 @@ ConfirmUpdate(key kUpdater)
 {
     string sPrompt = "Do you want to update with " + llKey2Name(kUpdater) + " with object key:" + (string)kUpdater +"\n"
     + "Do not rez any items till the update has started.";
-    g_kConfirmUpdate = Dialog(wearer, sPrompt, ["Yes", "No"], [], 0, LM_AUTH_GUEST);
+    g_kConfirmUpdate = Dialog(wearer, sPrompt, ["Yes", "No"], [], 0, LM_AUTHED_GUEST);
 }
 
 integer IsOpenCollarScript(string sName)
@@ -224,7 +224,7 @@ Init() {
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string str, key id) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum >= LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (iNum >= LM_AUTHED_DENIED || iNum < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     list cmd_parts = llParseString2List(str, [" "], []);
     // handle menu clicks
     if (llList2String(cmd_parts, 0) == "menu") {
@@ -301,7 +301,7 @@ default
                 if ((float)release_version > (float)my_version) {
                     string prompt = "\nYou are running OpenCollar version " +
                     my_version + ".  There is an update available.";
-                    g_kMenuID = Dialog(wearer, prompt, [BTN_GET_UPDATE], ["Cancel"], 0, LM_AUTH_GUEST);
+                    g_kMenuID = Dialog(wearer, prompt, [BTN_GET_UPDATE], ["Cancel"], 0, LM_AUTHED_GUEST);
                 }
             } else if (id == appengine_delivery_request) {
                 llOwnerSay("An updater will be delivered to you shortly.");

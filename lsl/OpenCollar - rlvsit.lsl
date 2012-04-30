@@ -54,11 +54,11 @@ integer g_iRestoreCount = 0;
 float   g_fPollDelay = 10.0;
 
 //MESSAGE MAP
-//integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+//integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -288,9 +288,9 @@ list RestackMenu(list in)
     
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
+    if (iNum < LM_AUTHED_PRIMARY || iNum >= LM_AUTHED_DENIED) return FALSE;
 /* //no more needed -- SA: really? don't we need it back now? (3.7)
-    else if ((sStr == "reset" || sStr == "runaway") && (iNum == LM_AUTH_PRIMARY || kID == g_kWearer))
+    else if ((sStr == "reset" || sStr == "runaway") && (iNum == LM_AUTHED_PRIMARY || kID == g_kWearer))
     {
         //clear db, reset script
         llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sDBToken, NULL_KEY);
@@ -335,7 +335,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
 /* SA: take care of this later, with a more generic method, allowing each plugin to bypass their own restrictions in rlvmain (and only their own)
         if (sStr == "unsit=force")
         {
-            if (iNum > LM_AUTH_SECONDARY)
+            if (iNum > LM_AUTHED_SECONDARY)
             {
                 Notify(g_kWearer, "Sorry, but RLV commands may only be given by owner, secowner, or group (if set).", FALSE);
             }
@@ -357,7 +357,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         {
             //this is a behavior that we handle.
             //filter commands from wearer, if wearer is not owner
-            if (iNum > LM_AUTH_SECONDARY)
+            if (iNum > LM_AUTHED_SECONDARY)
             {
                 Notify(g_kWearer, "Sorry, but RLV commands may only be given by owner, secowner, or group (if set).", FALSE);
                 return TRUE;
@@ -378,7 +378,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
             }
             iChange = TRUE;
         }
-        else if (sBehavior == "clear" && iNum <= LM_AUTH_SECONDARY) ClearSettings();
+        else if (sBehavior == "clear" && iNum <= LM_AUTHED_SECONDARY) ClearSettings();
     }
 
     if (iChange)

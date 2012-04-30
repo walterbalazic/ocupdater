@@ -72,11 +72,11 @@ integer g_iHasControl=FALSE; // dow we have control over the keyboard?
 list g_lButtons;
 
 //MESSAGE MAP
-//integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+//integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -483,7 +483,7 @@ SaveBellSettings()
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum > LM_AUTH_GUEST || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (iNum > LM_AUTHED_GUEST || iNum < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     string test=llToLower(sStr);
     if (sStr == "refreshmenu")
     {
@@ -539,7 +539,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
         }
         else if (sToken=="on")
         {
-            if (iNum!=LM_AUTH_GUEST)
+            if (iNum!=LM_AUTHED_GUEST)
             {
                 if (g_iBellOn==0)
                 {
@@ -559,7 +559,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
         }
         else if (sToken=="off")
         {
-            if ((g_iBellOn>0)&&(iNum!=LM_AUTH_GUEST))
+            if ((g_iBellOn>0)&&(iNum!=LM_AUTHED_GUEST))
             {
                 g_iBellOn=0;
 

@@ -5,11 +5,11 @@ integer RELAY_CHANNEL = -1812221819;
 integer g_iRlvListener;
 
 //MESSAGE MAP
-//integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-//integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+//integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+//integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;
 
 integer LM_SETTING_SAVE = 2000;//scripts send messages on this channel to have settings saved to httpdb
@@ -268,7 +268,7 @@ Dequeue()
     }
     sPrompt+="\nDo you want to allow this?";
     g_iAuthPending = TRUE;
-    g_kAuthMenuID = Dialog(g_kWearer, sPrompt, lButtons, [], 0, LM_AUTH_GUEST); // should be enough to dequeue...
+    g_kAuthMenuID = Dialog(g_kWearer, sPrompt, lButtons, [], 0, LM_AUTHED_GUEST); // should be enough to dequeue...
 }
 
 
@@ -515,7 +515,7 @@ RemListItem(string sMsg, integer iAuth)
             g_lObjBlackListNames=llDeleteSubList(g_lObjBlackListNames,i,i);
         }
     }
-    else if (iAuth > LM_AUTH_PRIMARY && g_iMinBaseMode > 0)
+    else if (iAuth > LM_AUTHED_PRIMARY && g_iMinBaseMode > 0)
     {
         notify(g_kWearer,"Sorry, your owner does not allow you to remove trusted sources.",TRUE);
     }
@@ -588,7 +588,7 @@ CleanQueue()
 // returns TRUE if it was a user command, FALSE if it is a LM from another subsystem
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
+    if (iNum < LM_AUTHED_PRIMARY || iNum >= LM_AUTHED_DENIED) return FALSE;
     if (llSubStringIndex(sStr,"relay") && sStr != "menu "+g_sSubMenu) return TRUE;
     if (!g_iRLV)
     {
@@ -597,7 +597,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
     }
     else if (sStr=="relay" || sStr == "menu "+g_sSubMenu) Menu(kID, iNum);
     else if ((sStr=llGetSubString(sStr,6,-1))=="minmode") MinModeMenu(kID, iNum);
-    else if (iNum!=LM_AUTH_PRIMARY&&kID!=g_kWearer)
+    else if (iNum!=LM_AUTHED_PRIMARY&&kID!=g_kWearer)
         llInstantMessage(kID, "Sorry, only the wearer of the collar or their owner can change the relay options.");
     else if (sStr=="safeword") SafeWord();
     else if (sStr=="relay getdebug")
@@ -618,7 +618,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         else llOwnerSay("No pending relay request for now.");
     }
     else if (sStr=="access") ListsMenu(kID, iNum);
-    else if (iNum == LM_AUTH_PRIMARY && !llSubStringIndex(sStr,"minmode"))
+    else if (iNum == LM_AUTHED_PRIMARY && !llSubStringIndex(sStr,"minmode"))
     {
         sStr=llGetSubString(sStr,8,-1);
         integer iOSuccess = 0;

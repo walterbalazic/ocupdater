@@ -7,7 +7,7 @@
 //      3) LINK_WHAT = LINK_SET (or LINK_THIS, whatever turns you on.)
 //      4) g_sToyName... because we are not always included in a collar.
 //      5) DoMenu whatever changed to return on NULL_KEY, in case of internal calls.
-//      6) TimerStart() factored out of the state for cleaness. (I had originally planned to have another way to call it, but decided just calling it with LM_AUTH_PRIMARY was cleaner.)
+//      6) TimerStart() factored out of the state for cleaness. (I had originally planned to have another way to call it, but decided just calling it with LM_AUTHED_PRIMARY was cleaner.)
 //      7) Added a = version of the time setting, so you can set a time exactly from another script.
 //      8) MENUNAME_REMOVE support.
 list g_lTimes;
@@ -88,12 +88,11 @@ list lButtons;
 
 //OpenCollae MESSAGE MAP
 // messages for authenticating users
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
-integer LM_AUTH_DENIED = 520;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
 
@@ -383,20 +382,20 @@ TimerWhentOff()
     g_iWhoCanChangeTime=504;
     if(g_iUnlockCollar)
     {
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "unlock", g_kWearer);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "unlock", g_kWearer);
     }
     if(g_iClearRLVRestions)
     {
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "clear", g_kWearer);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "clear", g_kWearer);
         if(!g_iUnlockCollar && g_iCollarLocked)
         {
             llSleep(2);
-            llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "lock", g_kWearer);
+            llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "lock", g_kWearer);
         }
     }
     if(g_iUnleash)
     {
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "unleash", "");
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "unleash", "");
     }
     g_iUnlockCollar=g_iClearRLVRestions=g_iUnleash=0;
     Notify(g_kWearer, "The timer has expired", TRUE);
@@ -435,8 +434,8 @@ TimerStart(integer perm)
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (iNum == LM_AUTHED_DENIED) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTHED_DENIED || iNum < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     //someone asked for our menu
     //give this plugin's menu to kID
     if (llToLower(sStr) == "timer" || sStr == "menu "+g_sSubMenu) DoMenu(kID, iNum);
@@ -469,7 +468,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         }
         else if(sMsg=="(*)unlock")
         {
-            if (iNum == LM_AUTH_PRIMARY) g_iUnlockCollar=0;
+            if (iNum == LM_AUTHED_PRIMARY) g_iUnlockCollar=0;
             else
             {
                 Notify(kID,"Only the owner can change if the " + g_sToyName + " unlocks when the timer runs out.",FALSE);
@@ -478,7 +477,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         }
         else if(sMsg=="()unlock")
         {
-            if(iNum == LM_AUTH_PRIMARY) g_iUnlockCollar=1;
+            if(iNum == LM_AUTHED_PRIMARY) g_iUnlockCollar=1;
             else
             {
                 Notify(kID,"Only the owner can change whether the " + g_sToyName + " will be unlocked when the timer runs out.",FALSE);
@@ -487,7 +486,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
          }
         else if(sMsg=="(*)clearRLV")
         {
-            if(iNum == LM_AUTH_GUEST)
+            if(iNum == LM_AUTHED_GUEST)
             {
                 Notify(kID,"You cannot change whether the RLV settings will be cleared",FALSE);
             }
@@ -496,7 +495,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
         }
         else if(sMsg=="()clearRLV")
         {
-            if(iNum == LM_AUTH_GUEST)
+            if(iNum == LM_AUTHED_GUEST)
             {
                 Notify(kID,"You cannot change whether the RLV settings will be cleared",FALSE);
             }
@@ -783,7 +782,7 @@ default
                 llWhisper(g_iInterfaceChannel, g_sMessage);//need to wispear
             }
         }
-        else if(iNum == LM_AUTH_DENIED)
+        else if(iNum == LM_AUTHED_DENIED)
 	{
             if (g_iRealRunning || g_iRealRunning)
                 if (kID == g_kWearer && sStr == "menu")

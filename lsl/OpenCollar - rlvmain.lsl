@@ -32,11 +32,11 @@ integer RELAY_CHANNEL = -1812221819;
 integer g_iVerbose;
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;
 
 integer POPUP_HELP = 1001;
@@ -359,10 +359,10 @@ SafeWord(integer iCollarToo) {
 integer UserCommand(integer iNum, string sStr, key kID)
 {
     // SA: TODO delete this when transition is finished
-    if (iNum == LM_AUTH_NONE) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
+    if (iNum == LM_TOAUTH_NEW) {llMessageLinked(LINK_SET, iNum, sStr, kID); return TRUE;}
     // /SA
-    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (iNum == LM_AUTHED_DENIED) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTHED_DENIED || iNum < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [" "], []);
     string sCmd = llList2String(lParams, 0);
     string sValue = llToLower(llList2String(lParams, 1));
@@ -399,7 +399,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
     // commands after this should only work when RLV is enabled and verified
     if (sStr == "clear")
     {
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(g_kWearer,"Sorry, only an owner can clear RLV settings.",TRUE);
         }
@@ -418,7 +418,7 @@ integer UserCommand(integer iNum, string sStr, key kID)
     }
     else if (sStr == "rlvoff")
     {
-        if (iNum == LM_AUTH_PRIMARY)
+        if (iNum == LM_AUTHED_PRIMARY)
         {
             g_iRLVOn = FALSE;
             llMessageLinked(LINK_SET, LM_SETTING_SAVE, "rlvon=0", NULL_KEY);
@@ -512,7 +512,7 @@ default{
         {
             llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + g_sSubMenu, NULL_KEY);
         }
-        else if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER && sStr == "menu "+g_sSubMenu)
+        else if (iNum >= LM_AUTHED_PRIMARY && iNum < LM_AUTHED_DENIED && sStr == "menu "+g_sSubMenu)
         {   //someone clicked "RLV" on the main menu.  Tell them we're not ready yet.
             Notify(kID, "Still querying for viewer version.  Please try again in a minute.", FALSE);
             llResetScript();//Nan: why do we reset here?! SA: maybe so we retry querying RLV?
@@ -647,7 +647,7 @@ state checked {
         if (iNum == MENUNAME_REQUEST && sStr == g_sParentMenu) {
             llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + g_sSubMenu, NULL_KEY);
         }
-        else if (iNum == LM_AUTH_NONE) return; // SA: TODO remove later
+        else if (iNum == LM_TOAUTH_NEW) return; // SA: TODO remove later
         else if (UserCommand(iNum, sStr, kID)) return;
         else if (iNum == DIALOG_RESPONSE)
         {

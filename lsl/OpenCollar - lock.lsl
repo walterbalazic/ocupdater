@@ -22,11 +22,11 @@ string LOCK = "*Lock*";
 string UNLOCK = "*Unlock*";
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
@@ -208,7 +208,7 @@ default
 
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
-        if (iNum >= LM_AUTH_PRIMARY && iNum < LM_AUTH_OTHER)
+        if (iNum >= LM_AUTHED_PRIMARY && iNum < LM_AUTHED_DENIED)
         {
             if (sStr == "settings")
             {
@@ -217,7 +217,7 @@ default
             }
             else if (sStr == "lock" || (!g_iLocked && sStr == "togglelock"))
             {
-                if (iNum == LM_AUTH_PRIMARY || kID == g_kWearer )
+                if (iNum == LM_AUTHED_PRIMARY || kID == g_kWearer )
                 {   //primary owners and wearer can lock and unlock. no one else
                     Lock();
                     //            owner = kID; //need to store the one who locked (who has to be also owner) here
@@ -228,7 +228,7 @@ default
             }
             else if (sStr == "unlock" || (g_iLocked && sStr == "togglelock"))
             {
-                if (iNum == LM_AUTH_PRIMARY)
+                if (iNum == LM_AUTHED_PRIMARY)
                 {  //primary owners can lock and unlock. no one else
                     Unlock();
                     Notify(kID, "Unlocked.", FALSE);
@@ -239,7 +239,7 @@ default
             
             else if (sStr == "menu " + LOCK)
             {
-                if (iNum == LM_AUTH_PRIMARY || kID == g_kWearer )
+                if (iNum == LM_AUTHED_PRIMARY || kID == g_kWearer )
                 {   //primary owners and wearer can lock. no one else
                     Lock();
                     Notify(kID, "Locked.", FALSE);
@@ -250,7 +250,7 @@ default
             }
             else if (sStr == "menu " + UNLOCK)
             {
-                if (iNum == LM_AUTH_PRIMARY)
+                if (iNum == LM_AUTHED_PRIMARY)
                 {  //primary owners can unlock. no one else
                     Unlock();
                     Notify(kID, "Unlocked.", FALSE);

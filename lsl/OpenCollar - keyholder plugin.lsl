@@ -199,13 +199,12 @@ list g_lElementsUnlockedLock; // "unlocked lock" :kc
 // OpenCollar MESSAGE MAP
 //===============================================================================
 // messages for authenticating users
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;
-integer LM_AUTH_DENIED = 520;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bit of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -588,10 +587,10 @@ TakeKey(key avatar, integer auth, integer remote)
     setMainMenu();
     
     if (kh_disable_openaccess && oc_openaccess)
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "unsetopenaccess", avatar);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "unsetopenaccess", avatar);
     
     if (kh_lock_collar && !oc_locked)
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "lock", avatar);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "lock", avatar);
     
     llMessageLinked(LINK_WHAT, WEARERLOCKOUT, "on", "");
     
@@ -601,10 +600,10 @@ TakeKey(key avatar, integer auth, integer remote)
         integer hours = kh_auto_return_time / 60 / 60;
         
         // Set the timer. Real timer for now. Make it an option later.
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, 
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, 
             "timer real=" + (string)hours + ":" + (string)minutes,
             NULL_KEY);
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "timer start", NULL_KEY);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "timer start", NULL_KEY);
     }
     
     llInstantMessage(avatar, "You take " + llKey2Name(llGetOwner()) + "'s key!");
@@ -633,10 +632,10 @@ ReturnKey(string reason, integer remote)
     setMainMenu();
 
     if (kh_disable_openaccess && kh_saved_openaccess && !oc_openaccess)
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "setopenaccess", avatar); 
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "setopenaccess", avatar); 
     
     if (kh_lock_collar && !kh_saved_locked && oc_locked)
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "unlock", avatar);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "unlock", avatar);
     
     // Need to check if someone else is doing this too... but really that should be handled by 
     // the auth module somehow.
@@ -647,7 +646,7 @@ ReturnKey(string reason, integer remote)
     
     if (kh_auto_return_timer && kh_auto_return_time)
     {
-        llMessageLinked(LINK_WHAT, LM_AUTH_PRIMARY, "timer stop", NULL_KEY);
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "timer stop", NULL_KEY);
     }
             
     llInstantMessage(avatar, llKey2Name(llGetOwner()) + "'s key is returned. " + reason);
@@ -831,7 +830,7 @@ string GetDBPrefix()
 // Check whether the avatar has owner privileges. Notify if not.
 integer OwnerCheck(key kAv, integer iAuth)
 {
-    if (iAuth == LM_AUTH_PRIMARY) return TRUE;
+    if (iAuth == LM_AUTHED_PRIMARY) return TRUE;
     else
     {
         Notify(kAv, "That command can only be accessed by an Owner.", FALSE);
@@ -853,7 +852,7 @@ integer KeyholderCheck(key kAv)
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer num, string str, key id) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (num > LM_AUTH_OTHER || num < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (num >= LM_AUTHED_DENIED || num < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     // Main Menu
     if (str == "menu " + g_szSubmenu)
     {
@@ -893,7 +892,7 @@ integer UserCommand(integer num, string str, key id) // here iNum: auth value, s
         else if (kh_key != NULL_KEY) Notify(id, "The key is not in the lock.", FALSE);
         else TakeKey(id, num, FALSE);
     }
-    else if ((id == g_keyWearer || num == LM_AUTH_PRIMARY) && str == "resetscripts")
+    else if ((id == g_keyWearer || num == LM_AUTHED_PRIMARY) && str == "resetscripts")
     {
         llResetScript();
     }
@@ -1091,7 +1090,7 @@ default
                 }
             }
         }
-        else if(num == LM_AUTH_DENIED)
+        else if(num == LM_AUTHED_DENIED)
         {
             // Do nothing, they are not allowed.
             if (kID == g_keyWearer && str == "menu" && ( kh_key != NULL_KEY || kh_lockout ) )
@@ -1101,7 +1100,7 @@ default
                 else Notify(g_keyWearer, "You are locked out of the " + g_sToyName + " until your key is returned.", TRUE);
             }
         }
-        else if (num == LM_AUTH_OTHER)
+        else if (num == LM_TOAUTH_PLUGIN)
         {
             if (kh_public_key && str == "khtakekey")
             {
@@ -1110,14 +1109,14 @@ default
             }
             else if (id == kh_key)
             {
-                llMessageLinked(LINK_WHAT, LM_AUTH_GUEST, str, id);
+                llMessageLinked(LINK_WHAT, LM_AUTHED_GUEST, str, id);
             }
             else if (kh_key == NULL_KEY && str == "menu" && !oc_openaccess && kh_public_key)
             {
                 DoMenuSpecial(id, 0, TRUE, num);
             }
         }
-        else if (UserCommand(num, str, id)) return;  // from LM_AUTH_PRIMARY to LM_AUTH_GUEST
+        else if (UserCommand(num, str, id)) return;  // from LM_AUTHED_PRIMARY to LM_AUTHED_GUEST
         else if (num == DIALOG_RESPONSE)
             // answer from menu system
             // careful, don't use the variable id to identify the user.

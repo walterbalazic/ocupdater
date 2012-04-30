@@ -25,11 +25,11 @@ integer g_iSensorRange = 8;
 integer g_iSensorRepeat = 120;
 
 //MESSAGE MAP
-//integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+//integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.
@@ -264,7 +264,7 @@ key Dialog(key kRCPT, string sPrompt, list lChoices, list lUtilityButtons, integ
 DialogSpy(key kID, integer iAuth)
 {
     string sPrompt;
-    if (iAuth != LM_AUTH_PRIMARY)
+    if (iAuth != LM_AUTHED_PRIMARY)
     {
         sPrompt = "Only an Owner can set and see spy options.";
         g_kDialogSpyID = Dialog(kID, sPrompt, [], [UPMENU], 0, iAuth);
@@ -429,16 +429,16 @@ TurnAllOff()
 
 integer UserCommand(integer iNum, string sStr, key kID)
 {
-    if (iNum < LM_AUTH_PRIMARY || iNum >= LM_AUTH_OTHER) return FALSE;
+    if (iNum < LM_AUTHED_PRIMARY || iNum >= LM_AUTHED_DENIED) return FALSE;
     //only a primary owner can use this !!
     sStr = llToLower(sStr);
     if (sStr == "spy" || sStr == "menu " + llToLower(g_sSubMenu)) DialogSpy(kID, iNum);
-    else if (iNum != LM_AUTH_PRIMARY)
+    else if (iNum != LM_AUTHED_PRIMARY)
     { 
         if(~llListFindList(g_lCmds, [sStr]))
             Notify(kID, "Sorry, only an owner can set spy settings.", FALSE);
     }
-    else // LM_AUTH_PRIMARY
+    else // LM_AUTHED_PRIMARY
     {
         if (sStr == "radarsettings")//request for the radar settings menu
         {

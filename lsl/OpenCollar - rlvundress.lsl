@@ -98,11 +98,11 @@ list ATTACH_POINTS = [//these are ordered so that their indices in the list corr
         ];
 
 //MESSAGE MAP
-//integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+//integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 integer POPUP_HELP = 1001;
 
@@ -414,8 +414,8 @@ DoUnlockAll(key kID)
 // returns TRUE if eligible (AUTHED link message number)
 integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value, sStr: user command, kID: avatar id
 {
-    if (iNum == LM_AUTH_OTHER) return TRUE;  // No command for people with no privilege in this plugin.
-    else if (iNum > LM_AUTH_OTHER || iNum < LM_AUTH_PRIMARY) return FALSE; // sanity check
+    if (iNum == LM_AUTHED_DENIED) return TRUE;  // No command for people with no privilege in this plugin.
+    else if (iNum > LM_AUTHED_DENIED || iNum < LM_AUTHED_PRIMARY) return FALSE; // sanity check
     list lParams = llParseString2List(sStr, [":", "="], []);
     string sCommand = llList2String(lParams, 0);
     //Debug(sStr + " ## " + sCommand);
@@ -433,7 +433,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
 	{ // "force" commands cannot cause "too much" trouble, all guests, including the sub can use them
             llMessageLinked(LINK_SET, RLV_CMD, sStr, NULL_KEY);
 	}
-        else if (iNum > LM_AUTH_SECONDARY)
+        else if (iNum > LM_AUTHED_SECONDARY)
         {
             llOwnerSay("Sorry, but RLV restrictions may only be set or unset by owners.");
         }
@@ -490,7 +490,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else  if (llGetSubString(sStr, 0, 11) == "lockclothing")            {
         string sMessage = llGetSubString(sStr, 13, -1);
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for locking clothes.", FALSE);
         }
@@ -512,7 +512,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else if (llGetSubString(sStr, 0, 13) == "unlockclothing")
     {
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for unlocking clothes.", FALSE);
         }
@@ -541,7 +541,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     {
         string sPoint = llGetSubString(sStr, 15, -1);
 
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for locking attachments.", FALSE);
         }
@@ -559,7 +559,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else  if (sStr == "lockall")
     {
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for locking attachments.", FALSE);
         }
@@ -572,7 +572,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else  if (sStr == "unlockall")
     {
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for unlocking attachments.", FALSE);
         }
@@ -585,7 +585,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
     }
     else if (llGetSubString(sStr, 0, 15) == "unlockattachment")
     {
-        if (iNum > LM_AUTH_SECONDARY)
+        if (iNum > LM_AUTHED_SECONDARY)
         {
             Notify(kID, "Sorry you need owner privileges for unlocking attachments.", FALSE);
         }
@@ -638,7 +638,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
         QueryAttachments(kID, iNum);
     }
     // rlvoff -> we have to turn the menu off too
-    else if (iNum>=LM_AUTH_PRIMARY && sStr=="rlvoff") g_iRLVOn=FALSE;
+    else if (iNum>=LM_AUTHED_PRIMARY && sStr=="rlvoff") g_iRLVOn=FALSE;
     return TRUE;
 }
 

@@ -4,11 +4,11 @@ key g_kPartner;
 float g_fTimeOut = 30.0;//time for the potential kissee to respond before we give up
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -109,7 +109,7 @@ default
         if (channel == g_iStopChan)
         {//this abuses the GUEST auth a bit but i think it's ok.
             Debug("message on stop channel");
-            llMessageLinked(LINK_SET, LM_AUTH_GUEST, "stopcouples", kID);
+            llMessageLinked(LINK_SET, LM_AUTHED_GUEST, "stopcouples", kID);
         }
     }
     

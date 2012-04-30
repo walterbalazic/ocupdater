@@ -29,11 +29,14 @@ string TOK_ROT      = "leashrot";
 string TOK_DEST     = "leashedto"; // format: uuid,rank
 // --- channel tokens ---
 // - MESSAGE MAP
-//integer LM_AUTH_NONE      = 0;
-integer LM_AUTH_PRIMARY       = 500;
-integer LM_AUTH_SECONDARY    = 501;
-integer LM_AUTH_GUEST       = 502;
-integer LM_AUTH_OTHER    = 504;
+
+//opencollar MESSAGE MAP
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
+
 integer LM_DO_SAFEWORD    = 510;
 integer POPUP_HELP          = 1001;
 // -- SETTINGS (whatever the actual backend)
@@ -188,7 +191,7 @@ Notify(key kID, string sMsg, integer iAlsoNotifyWearer)
 integer CheckCommandAuth(key kCmdGiver, integer iAuth)
 {
     // Check for invalid auth
-    if (iAuth < LM_AUTH_PRIMARY && iAuth >= LM_AUTH_OTHER)
+    if (iAuth < LM_AUTHED_PRIMARY && iAuth >= LM_AUTHED_DENIED)
         return FALSE;
     
     // If leashed, only move leash if Comm Giver outranks current leasher
@@ -545,7 +548,7 @@ DoUnleash()
     CleanUp();
     llMessageLinked(LINK_THIS, COMMAND_PARTICLE, "unleash", g_kLeashedTo);
     g_kLeashedTo = NULL_KEY;
-    g_iLastRank = LM_AUTH_OTHER;
+    g_iLastRank = LM_AUTHED_DENIED;
     llMessageLinked(LINK_SET, LM_SETTING_DELETE, TOK_DEST, "");
 }
 
@@ -588,7 +591,7 @@ YankTo(key kIn)
 
 integer UserCommand(integer iAuth, string sMessage, key kMessageID)
 {
-    if (iAuth >= LM_AUTH_PRIMARY && iAuth < LM_AUTH_OTHER)
+    if (iAuth >= LM_AUTHED_PRIMARY && iAuth < LM_AUTHED_DENIED)
     {
         string sMesL = llToLower(sMessage);
         g_kCmdGiver = kMessageID;
@@ -639,14 +642,14 @@ integer UserCommand(integer iAuth, string sMessage, key kMessageID)
             //Person holding the leash can yank.
             YankTo(kMessageID);
         }
-        else if (sMesL == "beckon" && iAuth == LM_AUTH_PRIMARY)
+        else if (sMesL == "beckon" && iAuth == LM_AUTHED_PRIMARY)
         {
             //Owner can beckon
             YankTo(kMessageID);
         }
         else if (sMesL == "stay")
         {
-            if (iAuth <= LM_AUTH_GUEST)
+            if (iAuth <= LM_AUTHED_GUEST)
             {
                 StayPut(kMessageID, iAuth);
             }
@@ -774,7 +777,7 @@ integer UserCommand(integer iAuth, string sMessage, key kMessageID)
         }
         return TRUE;
     }
-    else if (iAuth == LM_AUTH_OTHER)
+    else if (iAuth == LM_AUTHED_DENIED)
     {
         if (kMessageID == g_kLeashedTo)
         {

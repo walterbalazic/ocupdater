@@ -36,11 +36,11 @@ integer g_iAppLock = FALSE;
 string g_sAppLockToken = "AppLock";
 
 //MESSAGE MAP
-integer LM_AUTH_NONE = 0;
-integer LM_AUTH_PRIMARY = 500;
-integer LM_AUTH_SECONDARY = 501;
-integer LM_AUTH_GUEST = 502;
-integer LM_AUTH_OTHER = 504;
+integer LM_TOAUTH_NEW = 532;
+integer LM_AUTHED_PRIMARY = 514;
+integer LM_AUTHED_SECONDARY = 516;
+integer LM_AUTHED_GUEST = 518;
+integer LM_AUTHED_DENIED = 526;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
@@ -402,7 +402,7 @@ default
                 }
             }
         }
-        else if (iNum >= LM_AUTH_PRIMARY && iNum <= LM_AUTH_GUEST)
+        else if (iNum >= LM_AUTHED_PRIMARY && iNum <= LM_AUTHED_GUEST)
         {
             list lParams = llParseString2List(sStr, [" "], []);
             string sCommand = llToLower(llList2String(lParams, 0));
@@ -411,7 +411,7 @@ default
             {
                 //someone asked for our menu
                 //give this plugin's menu to id
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the collar appearance.", FALSE);
                     llMessageLinked(LINK_SET, iNum, "menu " + g_sParentMenu, kID);
@@ -425,7 +425,7 @@ default
             }
             else if (sStr == "appearance")
             {
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the collar appearance.", FALSE);
                 }
@@ -433,7 +433,7 @@ default
             }
             else if (sStr == "rotation")
             {
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the collar rotation.", FALSE);
                 }
@@ -446,7 +446,7 @@ default
              }
             else if (sStr == "position")
             {
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the collar position.", FALSE);
                 }
@@ -459,7 +459,7 @@ default
             }
             else if (sStr == "size")
             {
-                if (kID!=g_kWearer && iNum!=LM_AUTH_PRIMARY)
+                if (kID!=g_kWearer && iNum!=LM_AUTHED_PRIMARY)
                 {
                     Notify(kID,"You are not allowed to change the collar size.", FALSE);
                 }
@@ -472,7 +472,7 @@ default
             }
             else if (sCommand == "lockappearance")
             {
-                if (iNum == LM_AUTH_PRIMARY)
+                if (iNum == LM_AUTHED_PRIMARY)
                 {
                     g_iAppLock = (sValue!="0");
                     if(g_iAppLock) llMessageLinked(LINK_SET, LM_SETTING_SAVE, g_sAppLockToken + "=1", NULL_KEY);
@@ -528,7 +528,7 @@ default
                         //      ... which we do not like anymore.
                         //      The only drawback is to make sure the auth test remains consistant
                         //      in both places: here and in the "lockappearance" handler.
-                        if (iAuth == LM_AUTH_PRIMARY) g_iAppLock = lock;
+                        if (iAuth == LM_AUTHED_PRIMARY) g_iAppLock = lock;
                         // /Hack
                         if (lock) llMessageLinked(LINK_SET, iAuth, "lockappearance 1", kAv);
                         else llMessageLinked(LINK_SET, iAuth, "lockappearance 0", kAv);
