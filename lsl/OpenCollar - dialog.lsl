@@ -7,6 +7,7 @@ integer LM_AUTHED_PRIMARY = 514;
 integer LM_AUTHED_SECONDARY = 516;
 integer LM_AUTHED_GUEST = 518;
 integer LM_AUTHED_DENIED = 526;
+integer LM_CHANGED_AUTH = 576;
 integer LM_DO_SAFEWORD = 599;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
@@ -394,6 +395,14 @@ default
                 }
                 Notify(kRCPT, sOut, FALSE);
             }
+        }
+        else if (iNum == LM_CHANGED_AUTH)
+        {
+            integer iIndex = llListFindList(g_lMenus, [kID]);
+            if (~iIndex)
+            {
+                g_lMenus = llListReplaceList(g_lMenus, [(integer)sStr], iIndex + 6, iIndex + 6);
+            }            
         }
         else if (llGetSubString(sStr, 0, 10) == "remotemenu:")
         {

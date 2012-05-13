@@ -46,6 +46,8 @@ integer LM_TOAUTH_NEW = 532;     // before going through auth system
 integer LM_TOAUTH_ASKWEARER = 534;       // maybe will not be use in a IM (theoretically). Placeholder for cases where the wearer should be asked directly.
 integer LM_TOAUTH_PLUGIN = 536;    // auth is delegated to plugin, no further action should happen until an auth plugin increases the level
 
+integer LM_CHANGED_AUTH = 576;
+
 integer LM_DO_SAFEWORD = 599;
 //added for attachment auth (garvin)
 integer ATTACHMENT_REQUEST = 600;
@@ -103,6 +105,11 @@ integer g_iRemenu = FALSE;
 key g_kDialoger;//the person using the dialog.  needed in the sensor event when scanning for new owners to add
 integer g_iDialogerAuth; //auth of the person using the dialog
 
+// <Ask Wearer Aspect>
+key g_kAskMenuID;
+integer g_iAnonymousAsk;
+// </Ask Wearer Aspect>
+
 string getFullName(key kID)
 {
     string sDName = llGetDisplayName(kID);
@@ -159,9 +166,9 @@ sendToAttachmentInterface(string sMsg)
     llWhisper(g_iInterfaceChannel, "CollarCommand|" + (string) EXT_COMMAND_COLLAR + "|" + sMsg);
 }
 
-ChangePerson(key kID, string sName, integer iAuth, key kUser)
+ChangePerson(integer iAuth, key kUser)
 {//adds new/removes or edit existing owner, secowner, or blacklisted, as determined by type.
-    integer iIndex = llListFindList(g_lAvatars, [(string)kID]);
+    integer iIndex = llListFindList(g_lAvatars, [(string)g_kAvatarBeingEdited]);
     if (iAuth == LM_TOAUTH_PLUGIN)
     { //removing entry
         if (iIndex == -1)
@@ -174,14 +181,14 @@ ChangePerson(key kID, string sName, integer iAuth, key kUser)
             string sRemType = Num2AuthClassName(iRemAuth);
             if (iRemAuth <= LM_AUTHED_GUEST)
             {
-                if (kID != g_kWearer)
+                if (g_kAvatarBeingEdited != g_kWearer)
                 // if it isnt the wearer, we are nice and notify them
                 {
-                    Notify(kID,"You have been removed as " + sRemType +" on " + getFullName(g_kWearer) + "'s collar.", FALSE);
+                    Notify(g_kAvatarBeingEdited,"You have been removed as " + sRemType +" on " + getFullName(g_kWearer) + "'s collar.", FALSE);
                 }
                 else 
                 {
-                    Notify(kID, "You have been removed as " + sRemType +" on your own collar.", FALSE);
+                    Notify(g_kAvatarBeingEdited, "You have been removed as " + sRemType +" on your own collar.", FALSE);
                 }
             }
             g_lAvatars = llDeleteSubList(g_lAvatars, iIndex, iIndex + 2);
@@ -192,22 +199,22 @@ ChangePerson(key kID, string sName, integer iAuth, key kUser)
         string sType = Num2AuthClassName(iAuth);
         if (iIndex == -1)
         {   //owner is not already in list.  add him/her
-            g_lAvatars += [(string)kID, sName, iAuth];
-            Notify(g_kWearer, "Registered new avatar " + sName + " as " + sType + ".", FALSE);
+            g_lAvatars += [(string)g_kAvatarBeingEdited, g_sAvatarBeingEdited, iAuth];
+            Notify(g_kWearer, "Registered new avatar " + g_sAvatarBeingEdited + " as " + sType + ".", FALSE);
         }
         else
         {   //owner is already in list.  just replace the name and auth level
-            g_lAvatars = llListReplaceList(g_lAvatars, [sName, iAuth], iIndex + 1, iIndex + 2);
-            Notify(g_kWearer, "Avatar " + sName + " is now " + sType + ".", FALSE);
+            g_lAvatars = llListReplaceList(g_lAvatars, [g_sAvatarBeingEdited, iAuth], iIndex + 1, iIndex + 2);
+            Notify(g_kWearer, "Avatar " + g_sAvatarBeingEdited + " is now " + sType + ".", FALSE);
         }
-        if (kID != g_kWearer)
+        if (g_kAvatarBeingEdited != g_kWearer)
         {
             if (iAuth == LM_AUTHED_PRIMARY)
             {
                 Notify(g_kWearer, "Your owner can have a lot of power over you and you consent to that by making them your owner on your collar. They can leash you, put you in poses, lock your collar, see your location and what you say in local chat.  If you are using RLV they can  undress you, make you wear clothes, restrict your  chat, IMs and TPs as well as force TP you anywhere they like. Please read the help for more info. If you do not consent, you can use the command \"" + g_sPrefix + "runaway\" to remove all owners from the collar.", FALSE);
             }
         }
-        if (iAuth <= LM_AUTHED_GUEST) Notify(kID, "You have been registered as " + sType + " on " + getFullName(g_kWearer) + "'s collar.\nFor help concerning the collar usage either say \"" + g_sPrefix + "help\" in chat or go to " + g_sWikiURL + " .",FALSE);
+        if (iAuth <= LM_AUTHED_GUEST) Notify(g_kAvatarBeingEdited, "You have been registered as " + sType + " on " + getFullName(g_kWearer) + "'s collar.\nFor help concerning the collar usage either say \"" + g_sPrefix + "help\" in chat or go to " + g_sWikiURL + " .",FALSE);
     }
 
     if (llGetListLength(g_lAvatars) > 0)
@@ -218,7 +225,9 @@ ChangePerson(key kID, string sName, integer iAuth, key kUser)
     {
         llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sAvatarsToken, "");
     }
-    Notify(kUser, sName + "'s credential is now " + Num2AuthClassName(Auth(kID, FALSE)) + ".", TRUE);
+    integer iEffectiveNewAuth = Auth(g_kAvatarBeingEdited, FALSE);
+    Notify(kUser, g_sAvatarBeingEdited + "'s autority is now " + Num2AuthClassName(iEffectiveNewAuth) + ".", TRUE);
+    llMessageLinked(LINK_SET, LM_CHANGED_AUTH, (string)iEffectiveNewAuth, g_kAvatarBeingEdited);
     sendToAttachmentInterface("OwnerChange");
 }
 
@@ -345,7 +354,8 @@ integer in_range(key kID) {
         integer range = 20;
         vector kAvpos = llList2Vector(llGetObjectDetails(kID, [OBJECT_POS]), 0);
         if (llVecDist(llGetPos(), kAvpos) > range) {
-            llDialog(kID, "\n\nNot in range...", [], 298479);
+// SA: TODO, find a better place to notify this
+//            llDialog(kID, "\n\nNot in range...", [], 298479);
             return FALSE;
         }
         else return TRUE;
@@ -356,7 +366,8 @@ integer in_range(key kID) {
 integer Auth(string kObjID, integer attachment)
 {
     string kID = (string)llGetOwnerKey(kObjID); // if kObjID is an avatar key, then kID is the same key
-    integer iNum; integer iIndex;
+    integer iNum = LM_TOAUTH_PLUGIN;
+    integer iIndex;
     if (g_iWearerlocksOut && kID == (string)g_kWearer && !attachment)
     {
         iNum = LM_AUTHED_DENIED;
@@ -371,20 +382,14 @@ integer Auth(string kObjID, integer attachment)
         else iNum = LM_AUTHED_GUEST;
         //if no owners set, then wearer's cmds have owner auth
     }
-    else if (g_iGroupEnabled && (string)llGetObjectDetails((key)kObjID, [OBJECT_GROUP]) == (string)g_kGroup && (key)kID != g_kWearer)
-    {//meaning that the command came from an object set to our control group, and is not owned by the wearer
-        iNum = g_iGroupAccess;
-    }
-    else if (llSameGroup(kID) && g_iGroupEnabled && kID != (string)g_kWearer)
-    {
-        if (in_range((key)kID)) iNum = g_iGroupAccess;
-        else iNum = LM_AUTHED_DENIED;
-
-    }
-    else
-    {
-        if (in_range((key)kID)) iNum = g_iPublicAccess;
-        else iNum = LM_AUTHED_DENIED;
+    if (iNum <= LM_AUTHED_DENIED) return iNum;
+    if (in_range((key)kObjID))
+    { //catch everything else
+        if (g_iGroupEnabled && (string)llGetObjectDetails((key)kObjID, [OBJECT_GROUP]) == (string)g_kGroup)  iNum = g_iGroupAccess;
+        // case where the id is an object belonging to the control group
+        else if (llSameGroup(kID) && g_iGroupEnabled && kID != (string)g_kWearer) iNum = g_iGroupAccess;
+        // no "else" here: if public access is better than group access, then it should override the group autority
+        if (g_iPublicAccess <= iNum) iNum = g_iPublicAccess;
     }
     return iNum;
 }
@@ -473,166 +478,167 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
             Notify(kID, "Sorry, you are not allowed to see the owner list.",FALSE);
         }
     }
-    else if (OwnerCheck(kID, iNum))
-    { //respond to messages to set or unset owner, group, or secowners.  only owner may do these things
-        if (sCommand == "add")
-        { //set a new owner.  use w-hat sName2key service.  benefits: not case sensitive, and owner need not be present
-            //if no owner at all specified:
-            if (llGetListLength(lParams) == 1)
-            {
-                RegionPeopleMenu(kID, iNum);
-                return TRUE;
-            }
-            string sName = llDeleteSubString(sStr, 0, 3);
-            key kNew;
-            if (isKey(sName)) kNew = (key)sName; 
-            else kNew = RegionSearch(sName);
-            if (kNew)
-            {
-                g_sAvatarBeingEdited = llGetUsername(kNew);
-                g_kAvatarBeingEdited = kNew;
-                EditItemMenu(g_sAvatarBeingEdited, kID, iNum);
-            }
-            else Name2Key(sName);
-        }
-        else if (sStr == "remove all")
+    if (sCommand == "add")
+    { //set a new owner.  use w-hat sName2key service.  benefits: not case sensitive, and owner need not be present
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        //if no owner at all specified:
+        if (llGetListLength(lParams) == 1)
         {
-            string sSubName = llGetUsername(g_kWearer);
-            NotifyAvatars(LM_AUTHED_PRIMARY, "You have been removed as " + Num2AuthClassName(LM_AUTHED_PRIMARY) + " on the collar of " + sSubName + ".");
-            g_lAvatars = [];
-            llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sAvatarsToken, "");
-            Notify(kID, "Everybody was removed from the list of known people!",TRUE);
+            RegionPeopleMenu(kID, iNum);
+            return TRUE;
         }
-        else if (sCommand == "edit")
-        { //edit (or remove) avatar from the list of known people
-            if (llGetListLength(lParams) == 1)
+        string sName = llDeleteSubString(sStr, 0, 3);
+        key kNew;
+        if (isKey(sName)) kNew = (key)sName; 
+        else kNew = RegionSearch(sName);
+        if (kNew)
+        {
+            g_sAvatarBeingEdited = llGetUsername(kNew);
+            g_kAvatarBeingEdited = kNew;
+            EditItemMenu(g_sAvatarBeingEdited, kID, iNum);
+        }
+        else Name2Key(sName);
+    }
+    else if (sStr == "remove all")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        string sSubName = llGetUsername(g_kWearer);
+        NotifyAvatars(LM_AUTHED_PRIMARY, "You have been removed as " + Num2AuthClassName(LM_AUTHED_PRIMARY) + " on the collar of " + sSubName + ".");
+        g_lAvatars = [];
+        llMessageLinked(LINK_SET, LM_SETTING_DELETE, g_sAvatarsToken, "");
+        Notify(kID, "Everybody was removed from the list of known people!",TRUE);
+    }
+    else if (sCommand == "edit")
+    { //edit (or remove) avatar from the list of known people
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        if (llGetListLength(lParams) == 1)
+        {
+            KnownPeopleMenu(kID, iNum);
+        }
+        else
+        { // handle avatar already in the list... or display error message
+            string sName = llToLower(llDeleteSubString(sStr, 0, 4));
+            integer iIndex = llListFindList(g_lAvatars, [sName]);
+            if (iIndex >= 0)
             {
+                if (!isKey(sName)) iIndex--;
+                g_kAvatarBeingEdited = llList2Key(g_lAvatars, iIndex); 
+                g_sAvatarBeingEdited = llList2Key(g_lAvatars, iIndex + 1); 
+                EditItemMenu(sName, kID, iNum);
+            }
+            else
+            {
+                Notify(kID, "Avatar not found. Pick one from the list of registered avatars.", FALSE);
                 KnownPeopleMenu(kID, iNum);
             }
-            else
-            {
-                string sName = llDeleteSubString(sStr, 0, 4);
-                key kNew;
-                if (isKey(sName)) kNew = (key)sName; 
-                else
-                {
-                    integer iIndex = llListFindList(g_lAvatars, [llToLower(sName)]);
-                    if (iIndex > 0) kNew = llList2Key(g_lAvatars, iIndex - 1);
-                }
-                if (kNew)
-                {
-                    g_sAvatarBeingEdited = sName;
-                    g_kAvatarBeingEdited = kNew;
-                    EditItemMenu(sName, kID, iNum);
-                }
-                else
-                {
-                    Notify(kID, "Avatar not found. Pick one from the list of registered avatars.", FALSE);
-                    KnownPeopleMenu(kID, iNum);
-                }
-            }
         }
-        else if (sCommand == "setgroup")
+    }
+    else if (sCommand == "setgroup")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        //if no arguments given, use current group, else use key provided
+        if (isKey(llList2String(lParams, 1)))
         {
-            //if no arguments given, use current group, else use key provided
-            if (isKey(llList2String(lParams, 1)))
-            {
-                g_kGroup = (key)llList2String(lParams, 1);
-            }
-            else
-            {
-                //record current group key
-                g_kGroup = (key)llList2String(llGetObjectDetails(llGetKey(), [OBJECT_GROUP]), 0);
-            }
+            g_kGroup = (key)llList2String(lParams, 1);
+        }
+        else
+        {
+            //record current group key
+            g_kGroup = (key)llList2String(llGetObjectDetails(llGetKey(), [OBJECT_GROUP]), 0);
+        }
 
-            if (g_kGroup != "")
-            {
-                llMessageLinked(LINK_SET, LM_SETTING_SAVE, "group=" + (string)g_kGroup, "");
-                g_iGroupEnabled = TRUE;
-                g_kDialoger = kID;
-                g_iDialogerAuth = iNum;
-                //get group name from
-                g_kGroupHTTPID = llHTTPRequest("http://world.secondlife.com/group/" + (string)g_kGroup, [], "");
-            }
+        if (g_kGroup != "")
+        {
+            llMessageLinked(LINK_SET, LM_SETTING_SAVE, "group=" + (string)g_kGroup, "");
+            g_iGroupEnabled = TRUE;
+            g_kDialoger = kID;
+            g_iDialogerAuth = iNum;
+            //get group name from
+            g_kGroupHTTPID = llHTTPRequest("http://world.secondlife.com/group/" + (string)g_kGroup, [], "");
+        }
 //            if(g_iRemenu)
 //            {
 //                g_iRemenu = FALSE;
-                AuthMenu(kID, iNum);
+            AuthMenu(kID, iNum);
 //            }
-        }
-        else if (sCommand == "groupaccess")
+    }
+    else if (sCommand == "groupaccess")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        if (llGetListLength(lParams) >= 2)
         {
-            if (llGetListLength(lParams) >= 2)
+            g_iGroupAccess = AuthClassName2Num(llList2String(lParams, 1));
+            Notify(kID, "Group access set to "+ Num2AuthClassName(g_iGroupAccess)+".", FALSE);
+            if (g_iGroupAccess != LM_TOAUTH_PLUGIN)
             {
-                g_iGroupAccess = AuthClassName2Num(llList2String(lParams, 1));
-                Notify(kID, "Group access set to "+ Num2AuthClassName(g_iGroupAccess)+".", FALSE);
-                if (g_iGroupAccess != LM_TOAUTH_PLUGIN)
-                {
-                    llMessageLinked(LINK_SET, LM_SETTING_SAVE, "groupaccess=" + (string) g_iGroupAccess, "");
-                }
-                else
-                {
-                    llMessageLinked(LINK_SET, LM_SETTING_DELETE, "groupaccess", "");
-                }
-                sendToAttachmentInterface("OwnerChange");
+                llMessageLinked(LINK_SET, LM_SETTING_SAVE, "groupaccess=" + (string) g_iGroupAccess, "");
             }
-            else 
+            else
             {
-                g_sAvatarBeingEdited = "_group";
-                EditItemMenu("members of group "+g_sGroupName, kID, iNum);
+                llMessageLinked(LINK_SET, LM_SETTING_DELETE, "groupaccess", "");
             }
+            sendToAttachmentInterface("OwnerChange");
         }
-        else if (sCommand == "publicaccess")
+        else 
         {
-            if (llGetListLength(lParams) >= 2)
-            {
-                g_iPublicAccess = AuthClassName2Num(llList2String(lParams, 1));
-                Notify(kID, "Open access set to "+ Num2AuthClassName(g_iPublicAccess)+".", FALSE);
-                if (g_iPublicAccess != LM_TOAUTH_PLUGIN)
-                {
-                    llMessageLinked(LINK_SET, LM_SETTING_SAVE, "publicaccess=" + (string) g_iPublicAccess, "");
-                }
-                else
-                {
-                    llMessageLinked(LINK_SET, LM_SETTING_DELETE, "publicaccess", "");
-                    Notify(kID, "Public access disabled.", FALSE);
-                }
-                sendToAttachmentInterface("OwnerChange");
-            }
-            else 
-            {
-                g_sAvatarBeingEdited = "_public";
-                EditItemMenu("public access", kID, iNum);
-            }
+            g_sAvatarBeingEdited = "_group";
+            EditItemMenu("members of group "+g_sGroupName, kID, iNum);
         }
-        else if (sCommand == "setlimitrange")
+    }
+    else if (sCommand == "publicaccess")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        if (llGetListLength(lParams) >= 2)
         {
-            g_iLimitRange = TRUE;
-            // as the default is range limit on, we do not need to store anything for this
-            llMessageLinked(LINK_SET, LM_SETTING_DELETE, "limitrange", "");
-            Notify(kID, "Range limited set.", FALSE);
-            if(g_iRemenu)
+            g_iPublicAccess = AuthClassName2Num(llList2String(lParams, 1));
+            Notify(kID, "Open access set to "+ Num2AuthClassName(g_iPublicAccess)+".", FALSE);
+            if (g_iPublicAccess != LM_TOAUTH_PLUGIN)
             {
-                g_iRemenu = FALSE;
-                AuthMenu(kID, iNum);
+                llMessageLinked(LINK_SET, LM_SETTING_SAVE, "publicaccess=" + (string) g_iPublicAccess, "");
             }
-        }
-        else if (sCommand == "unsetlimitrange")
-        {
-            g_iLimitRange = FALSE;
-            // save off state for limited range (default is on)
-            llMessageLinked(LINK_SET, LM_SETTING_SAVE, "limitrange=" + (string) g_iLimitRange, "");
-            Notify(kID, "Range limited unset.", FALSE);
-            if(g_iRemenu)
+            else
             {
-                g_iRemenu = FALSE;
-                AuthMenu(kID, iNum);
+                llMessageLinked(LINK_SET, LM_SETTING_DELETE, "publicaccess", "");
+                Notify(kID, "Public access disabled.", FALSE);
             }
+            sendToAttachmentInterface("OwnerChange");
         }
-        else if (sCommand == "reset")
+        else 
         {
-            llResetScript();
+            g_sAvatarBeingEdited = "_public";
+            EditItemMenu("public access", kID, iNum);
         }
+    }
+    else if (sCommand == "setlimitrange")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        g_iLimitRange = TRUE;
+        // as the default is range limit on, we do not need to store anything for this
+        llMessageLinked(LINK_SET, LM_SETTING_DELETE, "limitrange", "");
+        Notify(kID, "Range limited set.", FALSE);
+        if(g_iRemenu)
+        {
+            g_iRemenu = FALSE;
+            AuthMenu(kID, iNum);
+        }
+    }
+    else if (sCommand == "unsetlimitrange")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        g_iLimitRange = FALSE;
+        // save off state for limited range (default is on)
+        llMessageLinked(LINK_SET, LM_SETTING_SAVE, "limitrange=" + (string) g_iLimitRange, "");
+        Notify(kID, "Range limited unset.", FALSE);
+        if(g_iRemenu)
+        {
+            g_iRemenu = FALSE;
+            AuthMenu(kID, iNum);
+        }
+    }
+    else if (sCommand == "reset")
+    {
+        if (!OwnerCheck(kID, iNum)) return TRUE;
+        llResetScript();
     }
     return TRUE;
 }
@@ -669,7 +675,7 @@ default
             if ((kID == g_kWearer) && (sStr=="reset" || sStr=="runaway"))
             {   // note that this will work *even* if the wearer is blacklisted or locked out
                 // otherwise forbid anybody who is not the wearer or primary owner
-                Notify(g_kWearer, "Running away from all owners started, your owners will now be notified!",FALSE);
+                Notify(g_kWearer, "Running away from all owners. Your primary owners will now be notified!",FALSE);
                 integer n;
                 integer stop = llGetListLength(g_lAvatars);
                 for (n = 0; n < stop; n += 3)
@@ -680,10 +686,17 @@ default
                         Notify(kOwner, llKey2Name(g_kWearer) + " has run away!",FALSE);
                     }
                 }
-                Notify(g_kWearer, "Runaway finished, the collar will now reset!",FALSE);
                 llMessageLinked(LINK_SET, LM_AUTHED_PRIMARY, "runaway", kID); // handled by settings script
                 return;
             }
+// <Ask wearer aspect>
+            else if (iAuth == LM_TOAUTH_ASKWEARER){
+                string sPrompt = "You currently have no access to this collar, but you can ask the wearer.";
+                if (g_iAnonymousAsk) sPrompt += "\n\nThe wearer will not know your name before authorizing you.";
+                else sPrompt += "\n\nThe wearer will be informed of your name if you ask.";
+                g_kAskMenuID = Dialog(kID, sPrompt, ["Ask", "Nevermind"], [], 0, iAuth);
+            }
+// </Ask wearer aspect>
             else
             {
                 llMessageLinked(LINK_SET, iAuth, sStr, kID);
@@ -784,7 +797,7 @@ default
         }
         else if (iNum == DIALOG_RESPONSE)
         {
-            if (llListFindList([g_kAuthMenuID, g_kKnownPeopleMenuID, g_kRegionPeopleMenuID, g_kEditMenuID], [kID]) != -1)
+            if (llListFindList([g_kAuthMenuID, g_kKnownPeopleMenuID, g_kRegionPeopleMenuID, g_kEditMenuID, g_kAskMenuID], [kID]) != -1)
             {
                 list lMenuParams = llParseString2List(sStr, ["|"], []);
                 key kAv = (key)llList2String(lMenuParams, 0);
@@ -845,14 +858,26 @@ default
                         integer iNewAuth = AuthClassName2Num(sMessage);
                         if (g_sAvatarBeingEdited == "_public") UserCommand(iAuth, "publicaccess "+(string)iNewAuth, kAv);
                         else if (g_sAvatarBeingEdited == "_group") UserCommand(iAuth, "groupaccess "+(string)iNewAuth, kAv);
-                        else ChangePerson(g_kAvatarBeingEdited, llGetUsername(g_kAvatarBeingEdited), iNewAuth, kAv);
+                        else ChangePerson(iNewAuth, kAv);
                     }
 //                    if (g_iRemenu) {g_iRemenu = FALSE; 
                     AuthMenu(kAv, iAuth);
 //                    }
                 }
-            }
 
+                // <Ask wearer aspect>
+                else if (kID == g_kAskMenuID)
+                {
+                    if (sMessage == "Ask")
+                    {
+                        g_kAvatarBeingEdited = kAv;
+                        g_sAvatarBeingEdited = llGetUsername(kAv);
+                        if (g_iAnonymousAsk) EditItemMenu("Somebody (who just tried to use your collar)", g_kWearer, Auth(g_kWearer, FALSE));
+                        else EditItemMenu(g_sAvatarBeingEdited + " (who just tried to use your collar)", g_kWearer, Auth(g_kWearer, FALSE));
+                    }
+                }
+                // </Ask wearer aspect>
+            }
         }
     }
 

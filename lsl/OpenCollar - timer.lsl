@@ -88,11 +88,11 @@ list lButtons;
 
 //OpenCollae MESSAGE MAP
 // messages for authenticating users
-integer LM_TOAUTH_NEW = 532;
 integer LM_AUTHED_PRIMARY = 514;
 integer LM_AUTHED_SECONDARY = 516;
 integer LM_AUTHED_GUEST = 518;
 integer LM_AUTHED_DENIED = 526;
+integer LM_TOAUTH_NEW = 532;
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
 integer POPUP_HELP = 1001;
 
@@ -136,7 +136,6 @@ integer WEARERLOCKOUT=620;
 
 // menu option to go one step back in menustructure
 string UPMENU = "^";
-string MORE = ">";
 
 Notify(key kID, string sMsg, integer iAlsoNotifyWearer)
 {
@@ -783,7 +782,7 @@ default
             }
         }
         else if(iNum == LM_AUTHED_DENIED)
-	{
+        {
             if (g_iRealRunning || g_iRealRunning)
                 if (kID == g_kWearer && sStr == "menu")
                     Notify(kID , "You are locked out of the " + g_sToyName + " until the timer expires", FALSE);

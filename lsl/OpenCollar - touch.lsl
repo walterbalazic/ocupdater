@@ -8,6 +8,7 @@
 //
 
 integer LM_TOAUTH_NEW = 532;
+integer LM_CHANGED_AUTH = 576;
 
 integer TOUCH_REQUEST = -9500;
 integer TOUCH_CANCEL = -9501;
@@ -127,6 +128,14 @@ default
                 g_lTouchRequests = llDeleteSubList(g_lTouchRequests, iIndex, iIndex - 1 + g_iStrideLength);
                 if (g_iNeedsPose && [] == g_lTouchRequests) llStopAnimation(g_sPOSE_ANIM);
             }
+        }
+        else if (iNum == LM_CHANGED_AUTH)
+        {
+            integer iIndex = llListFindList(g_lTouchRequests, [kID]);
+            if (~iIndex)
+            {
+                g_lTouchRequests = llListReplaceList(g_lTouchRequests, [(integer)sStr], iIndex + 2, iIndex + 2);
+            }            
         }
     }
 

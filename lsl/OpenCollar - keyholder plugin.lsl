@@ -136,20 +136,20 @@ string UPMENU = "^";//when your menu hears this, give the parent menu
 key kh_key = NULL_KEY; // id key of the person that has the key
 string kh_name; // name of the person that has the key
 integer kh_type; // Access type keyholder originally had.
-integer kh_saved_openaccess; // saved so it can be restored.
+integer kh_saved_publicaccess; // saved so it can be restored.
 integer kh_saved_locked; // saved so it can be restored.
 integer kh_lockout = FALSE; // User is locked out until key return.
 // integer kh_failed_time = 0; // When they last failed a check.  Ka: What is this for?  ws: Presnece stuff. Future feature.
 // Collar state
 integer oc_locked = FALSE;
-integer oc_openaccess = FALSE;
+integer oc_publicaccess = FALSE;
 // OOCD stuff
 integer g_iDeviceShown=TRUE; // True unless told otherwise.
 
 // -- Settings ----------------------------------------
 integer kh_on = FALSE; // Is this feature turned on?
 float kh_range = 10.0; // In meters. 0 = In sim.
-integer kh_disable_openaccess = TRUE; // Disable open access when key is taken?
+integer kh_disable_publicaccess = TRUE; // Disable open access when key is taken?
 integer kh_lock_collar = TRUE; // Lock the toy when the key is taken?
 integer kh_public_key = FALSE; // Can the key be taken when not open access?
 integer kh_main_menu = FALSE; // Display in main menu?
@@ -199,11 +199,12 @@ list g_lElementsUnlockedLock; // "unlocked lock" :kc
 // OpenCollar MESSAGE MAP
 //===============================================================================
 // messages for authenticating users
-integer LM_TOAUTH_NEW = 532;
 integer LM_AUTHED_PRIMARY = 514;
 integer LM_AUTHED_SECONDARY = 516;
 integer LM_AUTHED_GUEST = 518;
 integer LM_AUTHED_DENIED = 526;
+integer LM_TOAUTH_NEW = 532;
+integer LM_TOAUTH_PLUGIN = 536;
 integer LM_DO_SAFEWORD = 599;
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bit of lag caused by having IM slave scripts
@@ -545,7 +546,7 @@ Only the owner may change these.
     //fill in your button list and additional prompt here
     mybuttons += CheckBox("On", kh_on);
     mybuttons += CheckBox("Lock", kh_lock_collar);
-    mybuttons += CheckBox("No Open", kh_disable_openaccess);
+    mybuttons += CheckBox("No Public", kh_disable_publicaccess);
     mybuttons += CheckBox("Pub. Key", kh_public_key);
     mybuttons += CheckBox("Main Menu", kh_main_menu);
     mybuttons += CheckBox("Global", g_iGlobalKey);
@@ -581,13 +582,13 @@ TakeKey(key avatar, integer auth, integer remote)
     kh_name = llKey2Name(avatar);
     kh_type = auth;
     
-    kh_saved_openaccess = oc_openaccess;
+    kh_saved_publicaccess = oc_publicaccess;
     kh_saved_locked = oc_locked;
     
     setMainMenu();
     
-    if (kh_disable_openaccess && oc_openaccess)
-        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "unsetopenaccess", avatar);
+    if (kh_disable_publicaccess && oc_publicaccess)
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "publicaccess 0", avatar);
     
     if (kh_lock_collar && !oc_locked)
         llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "lock", avatar);
@@ -631,8 +632,8 @@ ReturnKey(string reason, integer remote)
     
     setMainMenu();
 
-    if (kh_disable_openaccess && kh_saved_openaccess && !oc_openaccess)
-        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "setopenaccess", avatar); 
+    if (kh_disable_publicaccess && kh_saved_publicaccess && !oc_publicaccess)
+        llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "publicaccess "+(string) kh_saved_publicaccess, avatar); 
     
     if (kh_lock_collar && !kh_saved_locked && oc_locked)
         llMessageLinked(LINK_WHAT, LM_AUTHED_PRIMARY, "unlock", avatar);
@@ -764,7 +765,7 @@ saveSettings()
         llDumpList2String([
                 kh_on,
                 kh_range,
-                kh_disable_openaccess,
+                kh_disable_publicaccess,
                 kh_lock_collar,
                 kh_public_key,
                 kh_main_menu,
@@ -781,7 +782,7 @@ loadDBSettings(string sSettings)
     
     kh_on = (integer)llList2String(lValues, 0);
     kh_range = (float)llList2String(lValues, 1);
-    kh_disable_openaccess = (integer)llList2String(lValues, 2);
+    kh_disable_publicaccess = (integer)llList2String(lValues, 2);
     kh_lock_collar = (integer)llList2String(lValues, 3);
     kh_public_key = (integer)llList2String(lValues, 4);
     kh_main_menu = (integer)llList2String(lValues, 5);
@@ -802,7 +803,7 @@ loadLocalSettings(string sSettings)
     kh_key = llList2Key(lValues, 0);
     kh_type = (integer)llList2String(lValues, 1);
     kh_name = llList2String(lValues, 2);
-    kh_saved_openaccess = (integer)llList2String(lValues, 3);
+    kh_saved_publicaccess = (integer)llList2String(lValues, 3);
     kh_saved_locked = (integer)llList2String(lValues, 4);
     
     updateVisible();
@@ -945,10 +946,10 @@ integer UserCommand(integer num, string str, key id) // here iNum: auth value, s
         DoMenuConfigure(id, 0, num);
         saveSettings();
     }
-    else if (str == "khsetnoopen" || str == "khunsetnoopen")
+    else if (str == "khsetnopublic" || str == "khunsetnopublic")
     {
         if (!OwnerCheck(id, num)) return TRUE;
-        kh_disable_openaccess = ( str == "khsetnonoopen" );
+        kh_disable_publicaccess = ( str == "khsetnonopublic" );
         DoMenuConfigure(id, 0, num);
         saveSettings();
     }
@@ -1093,7 +1094,7 @@ default
         else if(num == LM_AUTHED_DENIED)
         {
             // Do nothing, they are not allowed.
-            if (kID == g_keyWearer && str == "menu" && ( kh_key != NULL_KEY || kh_lockout ) )
+            if (id == g_keyWearer && str == "menu" && ( kh_key != NULL_KEY || kh_lockout ) )
             {
                 if ( kh_key == NULL_KEY )
                     Notify(g_keyWearer, "You are locked out of the " + g_sToyName + " until someone takes and returns your key.", TRUE);
@@ -1109,9 +1110,9 @@ default
             }
             else if (id == kh_key)
             {
-                llMessageLinked(LINK_WHAT, LM_AUTHED_GUEST, str, id);
+                llMessageLinked(LINK_WHAT, LM_AUTHED_SECONDARY, str, id);
             }
-            else if (kh_key == NULL_KEY && str == "menu" && !oc_openaccess && kh_public_key)
+            else if (kh_key == NULL_KEY && str == "menu" && !oc_publicaccess && kh_public_key)
             {
                 DoMenuSpecial(id, 0, TRUE, num);
             }
@@ -1195,9 +1196,9 @@ default
                 oc_locked = (integer)value;
                 updateVisible();
             }
-            else if ( CompareDBPrefix(token, "openaccess") )
+            else if ( CompareDBPrefix(token, "publicaccess") )
             {
-                oc_openaccess = (integer)value;
+                oc_publicaccess = (integer)value;
             }
             else if ( CompareDBPrefix(token, TOK_STORE) )
             {
@@ -1212,7 +1213,7 @@ default
                 oc_locked = FALSE;
                 updateVisible();
             }
-            else if ( CompareDBPrefix(str, "openaccess") ) oc_openaccess = FALSE;
+            else if ( CompareDBPrefix(str, "publicaccess") ) oc_publicaccess = FALSE;
         }
         else if (num == LM_DO_SAFEWORD)
         {

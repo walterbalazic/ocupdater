@@ -152,9 +152,9 @@ resetscripts() // reset all scripts except this one
 {
     integer iCount = llGetInventoryNumber(INVENTORY_SCRIPT);
     string sMyName = llGetScriptName();
-    while (iCount)
+    while (iCount--)
     {
-        string sName = llGetInventoryName(INVENTORY_SCRIPT, iCount--);
+        string sName = llGetInventoryName(INVENTORY_SCRIPT, iCount);
 	if (sName != sMyName)
             llResetOtherScript(sName);
     }

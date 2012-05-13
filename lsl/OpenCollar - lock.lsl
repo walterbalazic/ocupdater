@@ -12,6 +12,8 @@ integer g_iListenChan = 802930;//just something i randomly chose
 integer g_iListener;
 
 integer g_iLocked = FALSE;
+key g_kLockedBy;
+string g_sLockedBy;
 
 string g_sOpenLockPrimName="OpenLock"; // Prim description of elements that should be shown when unlocked
 string g_sClosedLockPrimName="ClosedLock"; // Prim description of elements that should be shown when locked
@@ -27,6 +29,7 @@ integer LM_AUTHED_PRIMARY = 514;
 integer LM_AUTHED_SECONDARY = 516;
 integer LM_AUTHED_GUEST = 518;
 integer LM_AUTHED_DENIED = 526;
+integer LM_CHANGED_AUTH = 576;
 integer LM_DO_SAFEWORD = 599;  // new for safeword
 
 //integer SEND_IM = 1000; deprecated.  each script should send its own IMs now.  This is to reduce even the tiny bt of lag caused by having IM slave scripts
@@ -132,8 +135,8 @@ BuildLockElementList()//EB
     {
         // read description
         lParams=llParseString2List((string)llGetObjectDetails(llGetLinkKey(n), [OBJECT_DESC]), ["~"], []);
-        // check inf name is lock name
-        if (llList2String(lParams, 0)==g_sLockPrimName || llList2String(lParams, 0)==g_sClosedLockPrimName)
+        // check if name is lock name
+        if (llList2String(lParams, 0)==g_sClosedLockPrimName)
         {
             // if so store the number of the prim
             g_lClosedLockElements += [n];
@@ -166,26 +169,48 @@ SetLockElementAlpha() //EB
     }
 }
 
-Lock()
+Lock(key kID, integer iNum)
 {
-    g_iLocked = TRUE;
-    llMessageLinked(LINK_SET, LM_SETTING_SAVE, "locked=1", NULL_KEY);
-    llMessageLinked(LINK_SET, RLV_CMD, "detach=n", NULL_KEY);
-    llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + UNLOCK, NULL_KEY);
-    llPlaySound("abdb1eaa-6160-b056-96d8-94f548a14dda", 1.0);
-    llMessageLinked(LINK_SET, MENUNAME_REMOVE, g_sParentMenu + "|" + LOCK, NULL_KEY);
-    SetLockElementAlpha();//EB
+    if (iNum > LM_AUTHED_SECONDARY && kID != g_kWearer)
+        Notify(kID, "Sorry, only owners and wearer can lock the collar.", FALSE);
+    else if (g_iLocked > 0 && kID == g_kWearer && g_kLockedBy != g_kWearer)
+        Notify(kID, "It's already locked by somebody else, and you cannot claim the key.", FALSE);
+    else
+    {
+        g_iLocked = iNum;
+        g_kLockedBy = kID;
+        g_sLockedBy = llGetUsername(kID);
+        llMessageLinked(LINK_SET, LM_SETTING_SAVE, "locked="+(string)iNum+","+(string)kID+","+g_sLockedBy, NULL_KEY);
+        llMessageLinked(LINK_SET, RLV_CMD, "detach=n", NULL_KEY);
+        llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + UNLOCK, NULL_KEY);
+        llPlaySound("abdb1eaa-6160-b056-96d8-94f548a14dda", 1.0);
+        llMessageLinked(LINK_SET, MENUNAME_REMOVE, g_sParentMenu + "|" + LOCK, NULL_KEY);
+        SetLockElementAlpha();//EB
+        Notify(kID, "Locked.", FALSE);
+        if (kID!=g_kWearer) llOwnerSay("Your collar has been locked by "+g_sLockedBy+".");
+    }
 }
 
-Unlock()
+Unlock(key kID, integer iNum)
 {
-    g_iLocked = FALSE;
-    llMessageLinked(LINK_SET, LM_SETTING_DELETE, "locked", NULL_KEY);
-    llMessageLinked(LINK_SET, RLV_CMD, "detach=y", NULL_KEY);
-    llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + LOCK, NULL_KEY);
-    llPlaySound("ee94315e-f69b-c753-629c-97bd865b7094", 1.0);
-    llMessageLinked(LINK_SET, MENUNAME_REMOVE, g_sParentMenu + "|" + UNLOCK, NULL_KEY);
-    SetLockElementAlpha(); //EB
+    if (iNum > LM_AUTHED_SECONDARY)
+        Notify(kID, "Sorry, only owners can unlock the collar.", FALSE);
+    else if (iNum > g_iLocked)
+        Notify(kID, "Sorry, somebody with greater autority than you owns the lock.", FALSE);
+    else if (kID == g_kWearer && g_kLockedBy != g_kWearer)
+        Notify(kID, "The collar already locked by somebody else, and you cannot claim the key.", FALSE);
+    else 
+    {  //primary owners can lock and unlock. no one else
+        g_iLocked = FALSE;
+        llMessageLinked(LINK_SET, LM_SETTING_DELETE, "locked", NULL_KEY);
+        llMessageLinked(LINK_SET, RLV_CMD, "detach=y", NULL_KEY);
+        llMessageLinked(LINK_SET, MENUNAME_RESPONSE, g_sParentMenu + "|" + LOCK, NULL_KEY);
+        llPlaySound("ee94315e-f69b-c753-629c-97bd865b7094", 1.0);
+        llMessageLinked(LINK_SET, MENUNAME_REMOVE, g_sParentMenu + "|" + UNLOCK, NULL_KEY);
+        SetLockElementAlpha(); //EB
+        Notify(kID, "Unlocked.", FALSE);
+        if (kID!=g_kWearer) llOwnerSay("Your collar has been unlocked.");
+    }
 }
 
 
@@ -212,51 +237,26 @@ default
         {
             if (sStr == "settings")
             {
-                if (g_iLocked) Notify(kID, "Locked.", FALSE);
+                if (g_iLocked) Notify(kID, "Locked by "+g_sLockedBy+".", FALSE);
                 else Notify(kID, "Unlocked.", FALSE);
             }
             else if (sStr == "lock" || (!g_iLocked && sStr == "togglelock"))
             {
-                if (iNum == LM_AUTHED_PRIMARY || kID == g_kWearer )
-                {   //primary owners and wearer can lock and unlock. no one else
-                    Lock();
-                    //            owner = kID; //need to store the one who locked (who has to be also owner) here
-                    Notify(kID, "Locked.", FALSE);
-                    if (kID!=g_kWearer) llOwnerSay("Your collar has been locked.");
-                }
-                else Notify(kID, "Sorry, only primary owners and wearer can lock the collar.", FALSE);
+                Lock(kID, iNum);
             }
             else if (sStr == "unlock" || (g_iLocked && sStr == "togglelock"))
             {
-                if (iNum == LM_AUTHED_PRIMARY)
-                {  //primary owners can lock and unlock. no one else
-                    Unlock();
-                    Notify(kID, "Unlocked.", FALSE);
-                    if (kID!=g_kWearer) llOwnerSay("Your collar has been unlocked.");
-                }
-                else Notify(kID, "Sorry, only primary owners can unlock the collar.", FALSE);
+                Unlock(kID, iNum);
             }
             
             else if (sStr == "menu " + LOCK)
             {
-                if (iNum == LM_AUTHED_PRIMARY || kID == g_kWearer )
-                {   //primary owners and wearer can lock. no one else
-                    Lock();
-                    Notify(kID, "Locked.", FALSE);
-                    if (kID!=g_kWearer) llOwnerSay("Your collar has been locked.");
-                }
-                else Notify(kID, "Sorry, only primary owners and wearer can lock the collar.", FALSE);
+                Lock(kID, iNum);
                 llMessageLinked(LINK_SET, iNum, "menu " + g_sParentMenu, kID);
             }
             else if (sStr == "menu " + UNLOCK)
             {
-                if (iNum == LM_AUTHED_PRIMARY)
-                {  //primary owners can unlock. no one else
-                    Unlock();
-                    Notify(kID, "Unlocked.", FALSE);
-                    if (kID!=g_kWearer) llOwnerSay("Your collar has been unlocked.");
-                }
-                else Notify(kID, "Sorry, only primary owners can unlock the collar.", FALSE);
+                Unlock(kID, iNum);
                 llMessageLinked(LINK_SET, iNum, "menu " + g_sParentMenu, kID);
             }
         }
@@ -267,7 +267,10 @@ default
             string sValue = llList2String(lParams, 1);
             if (sToken == "locked")
             {
-                g_iLocked = (integer)sValue;
+                list lLocked = llParseString2List(sValue, [","], []);
+                g_iLocked = llList2Integer(lLocked, 0);
+                g_kLockedBy = llList2Key(lLocked, 1);
+                g_sLockedBy = llList2String(lLocked, 2);
                 if (g_iLocked)
                 {
                     llMessageLinked(LINK_SET, RLV_CMD, "detach=n", NULL_KEY);
@@ -331,7 +334,10 @@ default
                 llMessageLinked(LINK_SET, RLV_CMD, "detach=y", NULL_KEY);
             }
         }
-
+        else if (iNum == LM_CHANGED_AUTH)
+        {
+            if (kID == g_kLockedBy && (integer)sStr > LM_AUTHED_SECONDARY) Unlock(kID, LM_AUTHED_PRIMARY);
+        }
     }
     attach(key kID)
     {
