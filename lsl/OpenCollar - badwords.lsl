@@ -1,6 +1,9 @@
-//OpenCollar - badwords
+///OpenCollar - badwords
 //Licensed under the GPLv2, with the additional requirement that these scripts remain "full perms" in Second Life.  See "OpenCollar License" for details.
 //if list isn't blank, open listener on channel 0, with sub's key <== only for the first badword???
+//November 2012:
+//Compliance with Opensimulator
+//Author: Dirk Mathers
 
 string g_sBadWordAnim = "shock";
 list g_lBadWords;
