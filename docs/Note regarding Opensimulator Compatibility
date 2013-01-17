@@ -1,0 +1,4 @@
+Opensimulator will not allow couples animation and leash to co-exist within the collar.  Do NOT include 
+couplesanim script in the collar build or leashing will fail forcing user to completely log out and
+reset the collar in it's entiretly.  This has been investigated by several scripters and there is 
+currently no workaround for this due to the ODE physics engine present in Opensimulator.
