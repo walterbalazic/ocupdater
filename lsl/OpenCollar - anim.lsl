@@ -1,4 +1,4 @@
-//OpenCollar - anim
+///OpenCollar - anim
 //Licensed under the GPLv2, with the additional requirement that these scripts remain "full perms" in Second Life.  See "OpenCollar License" for details.
 
 //needs to handle anim requests from sister scripts as well
@@ -95,7 +95,6 @@ integer g_iMenuStride = 3;
 string ANIMMENU = "Anim";
 string AOMENU = "AO";
 string POSEMENU = "Pose";
-
 string HEIGHTFIX = "HeightFix";
 string g_sHeightFixToken = "HFix";
 integer g_iHeightFix = TRUE;
