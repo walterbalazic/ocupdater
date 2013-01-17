@@ -1,4 +1,4 @@
-//OpenCollar - appearance
+///OpenCollar - appearance
 //handle appearance menu
 //handle saving position on detach, and restoring it on httpdb_response
 
