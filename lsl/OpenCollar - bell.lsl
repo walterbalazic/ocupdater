@@ -1,4 +1,4 @@
-//OpenCollar - bell
+///OpenCollar - bell
 //Licensed under the GPLv2, with the additional requirement that these scripts remain "full perms" in Second Life.  See "OpenCollar License" for details.
 //Collar Cuff Menu
 
@@ -14,6 +14,10 @@
 //==
 //==
 //=============================================================================
+//November 2012:
+//Adjustment for Opensimulator Compliance
+//Authors: Walter Balazic / Dirk Mathers
+//NOTE: UUID's for Bell sounds differ on each Opensimulator Grid, appropriate UUID must be included for bell to function
 
 integer g_iDebugging=FALSE;
 
