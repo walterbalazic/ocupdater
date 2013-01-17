@@ -1,4 +1,4 @@
-//OpenCollar - auth
+///OpenCollar - auth
 //Licensed under the GPLv2, with the additional requirement that these scripts remain "full perms" in Second Life.  See "OpenCollar License" for details.
 
 key g_kWearer;
@@ -186,14 +186,14 @@ NewPerson(key kID, string sName, string sType)
         g_lOwners = AddUniquePerson(g_lOwners, kID, sName, g_sRequestType);
         llMessageLinked(LINK_SET, LM_SETTING_SAVE, g_sOwnersToken + "=" + llDumpList2String(g_lOwners, ","), "");
         //added for attachment interface to announce owners have changed
-	sendToAttachmentInterface("OwnerChange");
+    sendToAttachmentInterface("OwnerChange");
     }
     else if (sType == "secowner")
     {
         g_lSecOwners = AddUniquePerson(g_lSecOwners, kID, sName, g_sRequestType);
         llMessageLinked(LINK_SET, LM_SETTING_SAVE, g_sSecOwnersToken + "=" + llDumpList2String(g_lSecOwners, ","), "");
         //added for attachment interface to announce owners have changed
-	sendToAttachmentInterface("OwnerChange");
+    sendToAttachmentInterface("OwnerChange");
     }
     else if (sType == "blacklist")
     {
@@ -384,7 +384,7 @@ list RemovePerson(list lPeople, string sName, string sToken, key kCmdr)
                 }
             }
             //whisper to attachments about owner and secowner changes
-	    sendToAttachmentInterface("OwnerChange");
+        sendToAttachmentInterface("OwnerChange");
         }
         //save to db
         if (llGetListLength(lPeople)>0)
@@ -703,7 +703,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
                 AuthMenu(kID, iNum);
             }
             //added for attachment interface to announce owners have changed
-	    sendToAttachmentInterface("OwnerChange");
+        sendToAttachmentInterface("OwnerChange");
         }
         else if (sCommand == "setopenaccess")
         {
@@ -715,7 +715,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
                 g_iRemenu = FALSE;
                 AuthMenu(kID, iNum);
             }
-	    sendToAttachmentInterface("OwnerChange");
+        sendToAttachmentInterface("OwnerChange");
         }
         else if (sCommand == "unsetopenaccess")
         {
@@ -728,7 +728,7 @@ integer UserCommand(integer iNum, string sStr, key kID) // here iNum: auth value
                 AuthMenu(kID, iNum);
             }
             //added for attachment interface to announce owners have changed
-	    sendToAttachmentInterface("OwnerChange");
+        sendToAttachmentInterface("OwnerChange");
         }
         else if (sCommand == "setlimitrange")
         {
@@ -900,7 +900,7 @@ default
                 Notify(kOwner, "Your sub " + sSubName + " has used the safeword. Please check on " + sSubFirstName +"'s well-being and if further care is required.",FALSE);
             }
             //added for attachment interface (Garvin)
-	    sendToAttachmentInterface("safeword");
+        sendToAttachmentInterface("safeword");
         }
         //added for attachment auth (Garvin)
         else if (iNum == ATTACHMENT_REQUEST)
@@ -1107,7 +1107,7 @@ default
             for(i = 0; i < iNum_detected; i++)
             {
                 sName = llDetectedName(i);
-		//actual label length is taken care of by dialog helper
+        //actual label length is taken care of by dialog helper
                 lButtons += [sName];
             }
             //add wearer if not already in button list
