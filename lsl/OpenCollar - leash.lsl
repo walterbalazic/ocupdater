@@ -1,4 +1,4 @@
-//OpenCollar - leash
+///OpenCollar - leash
 //leash script for the Open Collar Project (c)
 //Licensed under the GPLv2, with the additional requirement that these scripts remain "full perms" in Second Life.  See "OpenCollar License" for details.
 
@@ -19,6 +19,8 @@
 //April 2010 splitting of the particle part into its own script April 2010
 // Author: Garvin Twine
 // -------------------------------
+//November 2012 adjustment of leash system for Opensimulator compatibility
+//Authors: Walter Balazic, Dirk Mathers, Elizabeth Rofanui, Toy Wylie
 
 // ------ TOKEN DEFINITIONS ------
 // ---- Immutable ----
@@ -120,6 +122,7 @@ key g_kCmdGiver;
 key g_kLeashedTo = NULL_KEY;
 integer g_bLeashedToAvi;
 integer g_bFollowMode;
+integer g_iMoving=FALSE;    // is TRUE if the wearer is using a movement key
 
 list g_lLengths = ["1", "2", "3", "4", "5", "8","10" , "15", "20", "25", "30"];
 //list g_lPartPoints; // DoLeash function- priority given to last item in list. so if list is ["collar", "handle"], and we've heard from the handle and particles are going there, we'll ignore any responses from "collar"
@@ -429,6 +432,7 @@ DoLeash(key kTarget, integer iAuth, list lPoints, integer bFollowMode)
         llMoveToTarget(g_vPos, 0.7);
     }
     g_iUnixTime = llGetUnixTime();
+    llRequestPermissions(g_kWearer, PERMISSION_TAKE_CONTROLS);
 }
 
 // sets up a sensor callback which will leash / follow / post on chatted target.
@@ -548,6 +552,7 @@ DoUnleash()
     g_kLeashedTo = NULL_KEY;
     g_iLastRank = COMMAND_EVERYONE;
     llMessageLinked(LINK_SET, LM_SETTING_DELETE, TOK_DEST, "");
+    llReleaseControls();
 }
 
 integer KeyIsAv(key id)
@@ -636,7 +641,7 @@ integer UserCommand(integer iAuth, string sMessage, key kMessageID)
         }
         else if (sMesL == "rezpost")
         {
-            llRezObject("OC_Leash_Post", llGetPos() + (<1.0, 0, 0.5> * llGetRot()), ZERO_VECTOR, llEuler2Rot(<0, 90, 0> * DEG_TO_RAD), 0);
+            llRezObject("OC_Leash_Post", llGetPos() + (<1.0, 0, 0.5> * llGetRot()), ZERO_VECTOR, llEuler2Rot(<180, 358, 0> * DEG_TO_RAD), 0);
         }
         else if (sMesL == "yank" && kMessageID == g_kLeashedTo)
         {
@@ -661,6 +666,7 @@ integer UserCommand(integer iAuth, string sMessage, key kMessageID)
             {
                 g_iStay = FALSE;
                 llReleaseControls();
+                llRequestPermissions(g_kWearer, PERMISSION_TAKE_CONTROLS);
                 llOwnerSay("You are free to move again.");
                 Notify(kMessageID,"You allowed " + g_sWearer + " to move freely again.", FALSE);
             }
@@ -809,7 +815,7 @@ default
         //debug("statentry:"+(string)llGetFreeMemory( ));
         g_kWearer = llGetOwner();
         g_sWearer = llKey2Name(g_kWearer);
-        llMinEventDelay(0.3);
+        //llMinEventDelay(0.3);
         //g_sMyID =  llList2String(llParseString2List(llGetObjectDesc(), ["~"], []), 2);
         DoUnleash();
         //llOwnerSay("stateentryend:"+(string)llGetFreeMemory());
@@ -846,6 +852,7 @@ default
             {
                 g_iStay = FALSE;
                 llReleaseControls();
+                llRequestPermissions(g_kWearer, PERMISSION_TAKE_CONTROLS);
             }
             DoUnleash();
         }
@@ -1060,7 +1067,7 @@ default
         {
             vector vNewPos = llList2Vector(llGetObjectDetails(g_kLeashedTo,[OBJECT_POS]),0);
             //llStopMoveToTarget();
-            if (g_vPos != vNewPos)
+            if (llVecDist(vNewPos,g_vPos)>g_fLength)
             {
                 llTargetRemove(g_iTargetHandle);
                 g_vPos = vNewPos;
@@ -1076,7 +1083,17 @@ default
                         turnToTarget(g_vPos);
                     }
                 }*/
-                llMoveToTarget(g_vPos,0.7);
+
+                // get the vector towards the closest point inside the leash radius
+                vector difference=vNewPos-llGetPos();
+                // in case we are actively moving, work against us
+                if(g_iMoving)
+                {
+                    // push a little harder the further we are away
+                    llApplyImpulse(llVecNorm(difference)*(300.0+llVecMag(difference)*5.0),FALSE);
+                }
+                // move us back towards the leash range and a litle down
+                llMoveToTarget(g_vPos-llVecNorm(difference)*(g_fLength-1.0)+<0.0,0.0,-2.0>,0.6/llVecMag(difference)+0.1);
             }
             else
             {
@@ -1093,8 +1110,28 @@ default
     {
         if (iPerm & PERMISSION_TAKE_CONTROLS)
         {
-            //disbale all controls but left mouse button (for stay cmd)
-            llTakeControls(CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT | CONTROL_LBUTTON | CONTROL_ML_LBUTTON, FALSE, FALSE);
+            if(g_iStay==TRUE)
+            {
+                //disbale all controls but left mouse button (for stay cmd)
+                llTakeControls(~(CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT | CONTROL_LBUTTON | CONTROL_ML_LBUTTON), TRUE, FALSE);
+            }
+            else
+            {
+                // otherwise just take controls to check if we are currently moving around
+                llTakeControls(CONTROL_LEFT | CONTROL_RIGHT | CONTROL_FWD | CONTROL_BACK | CONTROL_UP | CONTROL_DOWN, TRUE, TRUE);
+            }
+        }
+    }
+
+    control(key k,integer held,integer change)
+    {
+        if(held==0)
+        {
+            g_iMoving=FALSE;
+        }
+        else
+        {
+            g_iMoving=TRUE;
         }
     }
 }
